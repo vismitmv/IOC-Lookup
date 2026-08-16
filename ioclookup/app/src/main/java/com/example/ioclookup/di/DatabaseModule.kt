@@ -27,4 +27,7 @@ object DatabaseModule {
 
     @Provides
     fun provideCustomFeedDao(db: IocDatabase): com.example.ioclookup.data.local.dao.CustomFeedDao = db.customFeedDao()
+
+    @Provides
+    fun provideBlocklistDao(db: IocDatabase): com.example.ioclookup.data.local.dao.BlocklistDao = db.blocklistDao()
 }

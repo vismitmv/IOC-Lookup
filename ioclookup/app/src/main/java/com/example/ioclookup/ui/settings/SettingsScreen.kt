@@ -207,6 +207,124 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ── Plain-Text Banlists (Sophos/Firewall Style) ─────────────
+            val blocklistFeeds by viewModel.blocklistFeeds.collectAsStateWithLifecycle()
+            val isSyncingBlocklists by viewModel.isSyncingBlocklists.collectAsStateWithLifecycle()
+            var showAddBlocklistDialog by remember { mutableStateOf(false) }
+
+            SettingsSection(title = "Firewall Banlists (Sophos Style)", icon = Icons.Filled.ListAlt, accentColor = OTXOrange) {
+                Text(
+                    "Import 10,000+ IP/URL/Domain plain-text banlists (one indicator per line) for instant offline matching.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextMuted
+                )
+                Spacer(Modifier.height(10.dp))
+
+                // Presets Buttons
+                Text("Quick Add Presets:", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AssistChip(
+                        onClick = {
+                            viewModel.addBlocklistFeed(
+                                "URLhaus Text Online",
+                                "https://urlhaus.abuse.ch/downloads/text_online/"
+                            )
+                        },
+                        label = { Text("URLhaus Online URLs") },
+                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = OTXOrange) }
+                    )
+                    AssistChip(
+                        onClick = {
+                            viewModel.addBlocklistFeed(
+                                "BinaryDefense Banlist",
+                                "https://binarydefense.com/banlist.txt"
+                            )
+                        },
+                        label = { Text("BinaryDefense IPs") },
+                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = OTXOrange) }
+                    )
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                if (blocklistFeeds.isEmpty()) {
+                    Text("No plain-text banlists added yet.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                } else {
+                    blocklistFeeds.forEach { feed ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(feed.name, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                Text(
+                                    "${feed.entryCount} entries • ${if (feed.lastSyncedAt > 0) "Synced" else "Not synced"}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = if (feed.entryCount > 0) VerdictClean else TextMuted
+                                )
+                            }
+                            IconButton(onClick = { viewModel.syncBlocklistFeed(feed) }) {
+                                Icon(Icons.Filled.Refresh, contentDescription = "Sync", tint = ElectricCyan, modifier = Modifier.size(18.dp))
+                            }
+                            Switch(
+                                checked = feed.isEnabled,
+                                onCheckedChange = { viewModel.toggleBlocklistFeed(feed) },
+                                colors = SwitchDefaults.colors(checkedThumbColor = OTXOrange)
+                            )
+                            IconButton(onClick = { viewModel.deleteBlocklistFeed(feed) }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { showAddBlocklistDialog = true },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, OTXOrange.copy(alpha = 0.5f))
+                    ) {
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = OTXOrange)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Add Banlist URL", color = OTXOrange)
+                    }
+
+                    if (blocklistFeeds.isNotEmpty()) {
+                        Button(
+                            onClick = { viewModel.syncAllBlocklists() },
+                            enabled = !isSyncingBlocklists,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = OTXOrange)
+                        ) {
+                            if (isSyncingBlocklists) {
+                                CircularProgressIndicator(Modifier.size(16.dp), color = TextPrimary, strokeWidth = 2.dp)
+                            } else {
+                                Icon(Icons.Filled.Sync, contentDescription = null)
+                                Spacer(Modifier.width(4.dp))
+                                Text("Sync All")
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (showAddBlocklistDialog) {
+                AddBlocklistDialog(
+                    onDismiss = { showAddBlocklistDialog = false },
+                    onConfirm = { name, url ->
+                        viewModel.addBlocklistFeed(name, url)
+                        showAddBlocklistDialog = false
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // ── Danger Zone ───────────────────────────────────────────────
             SettingsSection(title = "Danger Zone", icon = Icons.Filled.Warning, accentColor = VerdictMalicious) {
                 Button(
@@ -414,6 +532,52 @@ private fun AddCustomFeedDialog(
                 enabled = name.isNotBlank() && url.contains("{ioc}")
             ) {
                 Text("Add Feed")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun AddBlocklistDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, url: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardSurface,
+        title = { Text("Add Plain-Text Banlist / Blocklist", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Banlist Name (e.g. BinaryDefense)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("Plain-Text List URL") },
+                    placeholder = { Text("https://binarydefense.com/banlist.txt") },
+                    supportingText = { Text("Plain-text file (1 indicator per line)", color = TextMuted) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank() && url.startsWith("http")) onConfirm(name, url) },
+                enabled = name.isNotBlank() && url.startsWith("http")
+            ) {
+                Text("Add & Sync Banlist")
             }
         },
         dismissButton = {

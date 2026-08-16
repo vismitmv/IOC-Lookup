@@ -26,6 +26,7 @@ class IocRepository @Inject constructor(
     private val lookupDao: LookupDao,
     private val customFeedDao: CustomFeedDao,
     private val customFeedRepository: CustomFeedRepository,
+    private val blocklistRepository: BlocklistRepository,
     private val vtService: VirusTotalService,
     private val abuseService: AbuseIPDBService,
     private val shodanService: ShodanService,
@@ -104,6 +105,9 @@ class IocRepository @Inject constructor(
                 async { customFeedRepository.executeCustomFeed(feed, ioc) }
             }
 
+            // ── Local Firewall Blocklists ────────────────────────────────────
+            val blocklistDeferred = async { blocklistRepository.checkBlocklists(ioc) }
+
             vtDeferred?.await()?.let { sources["virustotal"] = it }
             abuseDeferred?.await()?.let { sources["abuseipdb"] = it }
             shodanDeferred?.await()?.let { sources["shodan"] = it }
@@ -113,6 +117,10 @@ class IocRepository @Inject constructor(
             customFeedDeferreds.forEachIndexed { index, deferred ->
                 val feedName = activeCustomFeeds.getOrNull(index)?.name ?: "custom_feed_$index"
                 sources["custom_$feedName"] = deferred.await()
+            }
+
+            blocklistDeferred.await().forEach { matchResult ->
+                sources["blocklist_${matchResult.feedName}"] = matchResult
             }
         }
 
