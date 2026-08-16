@@ -66,5 +66,3 @@ Enter your keys in the app's **Settings** screen. Keys are encrypted locally usi
 ## 📋 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
-> **Note:** This project includes [iText7](https://itextpdf.com/) (AGPL-3.0) for PDF export functionality. The full source code is available in this repository.

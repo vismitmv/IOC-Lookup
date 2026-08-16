@@ -112,8 +112,8 @@ dependencies {
   // DataStore
   implementation(libs.datastore.preferences)
 
-  // iText7 PDF
-  implementation(libs.itext7.core)
+  // OpenPDF (LGPL)
+  implementation(libs.openpdf)
 
   // Coil
   implementation(libs.coil.compose)

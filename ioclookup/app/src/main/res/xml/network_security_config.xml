@@ -7,11 +7,38 @@
     </base-config>
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">virustotal.com</domain>
+        <pin-set expiration="2027-01-01">
+            <!-- Let's Encrypt / Google Trust Services / etc for VT -->
+            <pin digest="SHA-256">ZW6iT+gjKpl1YVq12jhiec3YJS9Z0qElCb60uhKbubM=</pin>
+        </pin-set>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">abuseipdb.com</domain>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">J2OS1a2yTXLxaErLBN02L/pI+iFrTEQi9jcqJcOFgBg=</pin>
+        </pin-set>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">shodan.io</domain>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">XQTkjOMNHUFrqCwMA7dQ6MOCduFrSt7MM9l3YSXaY0Y=</pin>
+        </pin-set>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">alienvault.com</domain>
-        <trust-anchors>
-            <certificates src="system" />
-        </trust-anchors>
+        <pin-set expiration="2027-01-01">
+            <pin digest="SHA-256">iSZVtX5UFEYERk5UaZe/xn2ecdnqyUhPNTAVDYfDhio=</pin>
+        </pin-set>
+    </domain-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">abuse.ch</domain>
+        <pin-set expiration="2027-01-01">
+            <!-- URLhaus -->
+            <pin digest="SHA-256">Yz0ts4M9B9b1XBQTQtITniseuxd86RWgvl5+aekJM8Q=</pin>
+            <!-- MalwareBazaar -->
+            <pin digest="SHA-256">r16aukwVp2oNhhtmDd71UhpRLBZPsvpBYRTGzgeJ+oM=</pin>
+            <!-- ThreatFox -->
+            <pin digest="SHA-256">iHDTfsDGc1agw766b4KxXBh/yCxCAm1FU16amE1vFoU=</pin>
+        </pin-set>
     </domain-config>
 </network-security-config>

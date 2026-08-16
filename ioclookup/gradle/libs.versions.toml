@@ -19,7 +19,7 @@ retrofit = "2.11.0"
 okhttp = "4.12.0"
 gson = "2.11.0"
 securityCrypto = "1.1.0-alpha06"
-itext7 = "7.2.6"
+openpdf = "2.0.3"
 datastorePrefs = "1.1.7"
 coil = "2.7.0"
 ksp = "2.3.11"
@@ -69,8 +69,8 @@ gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 # Security
 security-crypto = { module = "androidx.security:security-crypto", version.ref = "securityCrypto" }
 
-# iText7 PDF
-itext7-core = { module = "com.itextpdf:itext7-core", version.ref = "itext7" }
+# OpenPDF (LGPL-2.1 / MPL-2.0)
+openpdf = { module = "com.github.librepdf:openpdf", version.ref = "openpdf" }
 
 # DataStore
 datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePrefs" }

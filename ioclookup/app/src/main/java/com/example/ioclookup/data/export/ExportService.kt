@@ -3,20 +3,19 @@ package com.example.ioclookup.data.export
 import android.content.Context
 import com.example.ioclookup.domain.model.LookupResult
 import com.example.ioclookup.domain.model.SourceResult
-import com.itextpdf.kernel.colors.ColorConstants
-import com.itextpdf.kernel.colors.DeviceRgb
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Cell
-import com.itextpdf.layout.element.Paragraph
-import com.itextpdf.layout.element.Table
-import com.itextpdf.layout.element.LineSeparator
-import com.itextpdf.layout.properties.TextAlignment
-import com.itextpdf.layout.properties.UnitValue
-import com.itextpdf.kernel.pdf.canvas.draw.SolidLine
+import com.lowagie.text.Cell
+import com.lowagie.text.Document
+import com.lowagie.text.Element
+import com.lowagie.text.Font
+import com.lowagie.text.Paragraph
+import com.lowagie.text.Phrase
+import com.lowagie.text.Table
+import com.lowagie.text.pdf.PdfWriter
+import com.lowagie.text.pdf.draw.LineSeparator
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.awt.Color
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -28,6 +27,20 @@ class ExportService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+
+    // Fonts
+    private val titleFont = Font(Font.HELVETICA, 20f, Font.BOLD, Color(20, 20, 40))
+    private val sectionFont = Font(Font.HELVETICA, 14f, Font.BOLD, Color(20, 20, 40))
+    private val labelFont = Font(Font.HELVETICA, 10f, Font.BOLD, Color.BLACK)
+    private val valueFont = Font(Font.HELVETICA, 10f, Font.NORMAL, Color.BLACK)
+    private val footerFont = Font(Font.HELVETICA, 8f, Font.NORMAL, Color(149, 165, 166))
+
+    private fun verdictColor(verdictName: String): Color = when (verdictName) {
+        "MALICIOUS" -> Color(231, 76, 60)
+        "SUSPICIOUS" -> Color(243, 156, 18)
+        "CLEAN" -> Color(46, 204, 113)
+        else -> Color(149, 165, 166)
+    }
 
     fun asPlainText(result: LookupResult): String = buildString {
         appendLine("═══════════════════════════════════════")
@@ -88,38 +101,30 @@ class ExportService @Inject constructor(
         val dir = context.cacheDir
         val file = File(dir, "ioc_report_${System.currentTimeMillis()}.pdf")
 
-        val pdfDoc = PdfDocument(PdfWriter(file))
-        val document = Document(pdfDoc)
+        val document = Document()
+        PdfWriter.getInstance(document, FileOutputStream(file))
+        document.open()
 
-        val headerColor = DeviceRgb(20, 20, 40)
-        val accentColor = when (result.verdict.name) {
-            "MALICIOUS" -> DeviceRgb(231, 76, 60)
-            "SUSPICIOUS" -> DeviceRgb(243, 156, 18)
-            "CLEAN" -> DeviceRgb(46, 204, 113)
-            else -> DeviceRgb(149, 165, 166)
-        }
+        val accent = verdictColor(result.verdict.name)
 
         // Title
-        document.add(
-            Paragraph("IOC LOOKUP REPORT")
-                .setFontSize(20f)
-                .setBold()
-                .setFontColor(headerColor)
-        )
-        document.add(LineSeparator(SolidLine()))
+        document.add(Paragraph("IOC LOOKUP REPORT", titleFont))
+        document.add(LineSeparator())
 
-        // Summary Table
-        val summaryTable = Table(UnitValue.createPercentArray(floatArrayOf(30f, 70f)))
-            .setWidth(UnitValue.createPercentValue(100f))
+        // Summary table
+        val summaryTable = Table(2).apply {
+            width = 100f
+            setWidths(floatArrayOf(30f, 70f))
+            padding = 4f
+            spacing = 0f
+        }
 
         fun addRow(label: String, value: String, highlight: Boolean = false) {
-            val labelCell = Cell().add(Paragraph(label).setBold().setFontSize(10f))
-                .setBackgroundColor(DeviceRgb(240, 240, 250))
-            val valueCell = Cell().add(
-                Paragraph(value).setFontSize(10f).apply {
-                    if (highlight) setFontColor(accentColor)
-                }
-            )
+            val labelCell = Cell(Phrase(label, labelFont)).apply {
+                setBackgroundColor(Color(240, 240, 250))
+            }
+            val valFont = if (highlight) Font(Font.HELVETICA, 10f, Font.BOLD, accent) else valueFont
+            val valueCell = Cell(Phrase(value, valFont))
             summaryTable.addCell(labelCell)
             summaryTable.addCell(valueCell)
         }
@@ -133,98 +138,62 @@ class ExportService @Inject constructor(
         document.add(Paragraph("\n"))
 
         // Per-source sections
-        result.vtResult?.let { vt ->
-            document.add(Paragraph("VirusTotal").setBold().setFontSize(14f).setFontColor(headerColor))
-            document.add(LineSeparator(SolidLine()))
-            val tbl = Table(UnitValue.createPercentArray(floatArrayOf(35f, 65f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-            tbl.addCell(Cell().add(Paragraph("Detection").setBold()))
-            tbl.addCell(Cell().add(Paragraph(vt.detectionLabel).setFontColor(if (vt.detectionCount > 0) accentColor else ColorConstants.BLACK)))
-            tbl.addCell(Cell().add(Paragraph("Reputation").setBold()))
-            tbl.addCell(Cell().add(Paragraph("${vt.reputation}")))
-            if (vt.categories.isNotEmpty()) {
-                tbl.addCell(Cell().add(Paragraph("Categories").setBold()))
-                tbl.addCell(Cell().add(Paragraph(vt.categories.joinToString(", "))))
+        fun addSection(title: String, rows: List<Pair<String, String>>) {
+            document.add(Paragraph(title, sectionFont))
+            document.add(LineSeparator())
+            val tbl = Table(2).apply {
+                width = 100f
+                setWidths(floatArrayOf(35f, 65f))
+                padding = 4f
+                spacing = 0f
             }
-            if (vt.tags.isNotEmpty()) {
-                tbl.addCell(Cell().add(Paragraph("Tags").setBold()))
-                tbl.addCell(Cell().add(Paragraph(vt.tags.joinToString(", "))))
+            for ((lbl, vl) in rows) {
+                tbl.addCell(Cell(Phrase(lbl, labelFont)))
+                tbl.addCell(Cell(Phrase(vl, valueFont)))
             }
             document.add(tbl)
             document.add(Paragraph("\n"))
+        }
+
+        result.vtResult?.let { vt ->
+            val rows = mutableListOf(
+                "Detection" to vt.detectionLabel,
+                "Reputation" to "${vt.reputation}"
+            )
+            if (vt.categories.isNotEmpty()) rows += "Categories" to vt.categories.joinToString(", ")
+            if (vt.tags.isNotEmpty()) rows += "Tags" to vt.tags.joinToString(", ")
+            addSection("VirusTotal", rows)
         }
 
         result.abuseResult?.let { abuse ->
-            document.add(Paragraph("AbuseIPDB").setBold().setFontSize(14f).setFontColor(headerColor))
-            document.add(LineSeparator(SolidLine()))
-            val tbl = Table(UnitValue.createPercentArray(floatArrayOf(35f, 65f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-            tbl.addCell(Cell().add(Paragraph("Confidence Score").setBold()))
-            tbl.addCell(Cell().add(Paragraph("${abuse.abuseConfidenceScore}%")))
-            tbl.addCell(Cell().add(Paragraph("Total Reports").setBold()))
-            tbl.addCell(Cell().add(Paragraph("${abuse.totalReports} from ${abuse.numDistinctUsers} users")))
-            abuse.lastReportedAt?.let {
-                tbl.addCell(Cell().add(Paragraph("Last Reported").setBold()))
-                tbl.addCell(Cell().add(Paragraph(it)))
-            }
-            abuse.isp?.let {
-                tbl.addCell(Cell().add(Paragraph("ISP").setBold()))
-                tbl.addCell(Cell().add(Paragraph(it)))
-            }
-            document.add(tbl)
-            document.add(Paragraph("\n"))
+            val rows = mutableListOf(
+                "Confidence Score" to "${abuse.abuseConfidenceScore}%",
+                "Total Reports" to "${abuse.totalReports} from ${abuse.numDistinctUsers} users"
+            )
+            abuse.lastReportedAt?.let { rows += "Last Reported" to it }
+            abuse.isp?.let { rows += "ISP" to it }
+            addSection("AbuseIPDB", rows)
         }
 
         result.shodanResult?.let { sh ->
-            document.add(Paragraph("Shodan").setBold().setFontSize(14f).setFontColor(headerColor))
-            document.add(LineSeparator(SolidLine()))
-            val tbl = Table(UnitValue.createPercentArray(floatArrayOf(35f, 65f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-            if (sh.ports.isNotEmpty()) {
-                tbl.addCell(Cell().add(Paragraph("Open Ports").setBold()))
-                tbl.addCell(Cell().add(Paragraph(sh.ports.joinToString(", "))))
-            }
-            sh.org?.let {
-                tbl.addCell(Cell().add(Paragraph("Organization").setBold()))
-                tbl.addCell(Cell().add(Paragraph(it)))
-            }
-            sh.country?.let {
-                tbl.addCell(Cell().add(Paragraph("Country").setBold()))
-                tbl.addCell(Cell().add(Paragraph(it)))
-            }
-            if (sh.cves.isNotEmpty()) {
-                tbl.addCell(Cell().add(Paragraph("CVEs").setBold()))
-                tbl.addCell(Cell().add(Paragraph(sh.cves.joinToString(", "))))
-            }
-            document.add(tbl)
-            document.add(Paragraph("\n"))
+            val rows = mutableListOf<Pair<String, String>>()
+            if (sh.ports.isNotEmpty()) rows += "Open Ports" to sh.ports.joinToString(", ")
+            sh.org?.let { rows += "Organization" to it }
+            sh.country?.let { rows += "Country" to it }
+            if (sh.cves.isNotEmpty()) rows += "CVEs" to sh.cves.joinToString(", ")
+            if (rows.isNotEmpty()) addSection("Shodan", rows)
         }
 
         result.otxResult?.let { otx ->
-            document.add(Paragraph("AlienVault OTX").setBold().setFontSize(14f).setFontColor(headerColor))
-            document.add(LineSeparator(SolidLine()))
-            val tbl = Table(UnitValue.createPercentArray(floatArrayOf(35f, 65f)))
-                .setWidth(UnitValue.createPercentValue(100f))
-            tbl.addCell(Cell().add(Paragraph("Pulse Count").setBold()))
-            tbl.addCell(Cell().add(Paragraph("${otx.pulseCount}")))
-            if (otx.tags.isNotEmpty()) {
-                tbl.addCell(Cell().add(Paragraph("Tags").setBold()))
-                tbl.addCell(Cell().add(Paragraph(otx.tags.take(15).joinToString(", "))))
-            }
-            if (otx.malwareFamilies.isNotEmpty()) {
-                tbl.addCell(Cell().add(Paragraph("Malware Families").setBold()))
-                tbl.addCell(Cell().add(Paragraph(otx.malwareFamilies.joinToString(", "))))
-            }
-            document.add(tbl)
-            document.add(Paragraph("\n"))
+            val rows = mutableListOf("Pulse Count" to "${otx.pulseCount}")
+            if (otx.tags.isNotEmpty()) rows += "Tags" to otx.tags.take(15).joinToString(", ")
+            if (otx.malwareFamilies.isNotEmpty()) rows += "Malware Families" to otx.malwareFamilies.joinToString(", ")
+            addSection("AlienVault OTX", rows)
         }
 
-        document.add(
-            Paragraph("Generated by IOC Lookup • ${dateFormat.format(Date())}")
-                .setFontSize(8f)
-                .setFontColor(DeviceRgb(149, 165, 166))
-                .setTextAlignment(TextAlignment.CENTER)
-        )
+        document.add(Paragraph("Generated by IOC Lookup • ${dateFormat.format(Date())}", footerFont).apply {
+            alignment = Element.ALIGN_CENTER
+        })
 
         document.close()
         return file
