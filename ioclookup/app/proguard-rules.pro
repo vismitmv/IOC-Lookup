@@ -4,8 +4,8 @@
 -keepclassmembers class * {
     @com.google.gson.annotations.SerializedName <fields>;
 }
--keep class com.example.ioclookup.data.remote.** { *; }
--keep class com.example.ioclookup.domain.model.** { *; }
+-keep class com.vismitmv.ioclookup.data.remote.** { *; }
+-keep class com.vismitmv.ioclookup.domain.model.** { *; }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase

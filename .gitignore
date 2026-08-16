@@ -17,4 +17,9 @@
 *.ap_
 *.dex
 *.class
-EOF
+*.keystore
+*.jks
+*.idsig
+google-services.json
+.env
+.env.*

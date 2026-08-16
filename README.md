@@ -39,6 +39,32 @@ cd IOC-Lookup/ioclookup
 
 ---
 
+## 🔑 API Key Setup
+
+IOC Lookup does **not** bundle any API keys. You must provide your own (free-tier) keys:
+
+1. **VirusTotal**: Sign up at [virustotal.com](https://www.virustotal.com/) → API Key in your profile
+2. **AbuseIPDB**: Sign up at [abuseipdb.com](https://www.abuseipdb.com/) → API Key in dashboard
+3. **Shodan**: Sign up at [shodan.io](https://www.shodan.io/) → API Key in account settings
+4. **AlienVault OTX**: Sign up at [otx.alienvault.com](https://otx.alienvault.com/) → API Key in settings
+
+Enter your keys in the app's **Settings** screen. Keys are encrypted locally using Android's EncryptedSharedPreferences (AES-256-GCM) and never leave your device.
+
+**abuse.ch sources** (URLhaus, MalwareBazaar, ThreatFox) do **not** require API keys.
+
+---
+
+## 🔒 Privacy
+
+- **No telemetry or analytics**: IOC Lookup does not collect, transmit, or store any usage data.
+- **Direct API communication**: All threat lookups are made directly from your device to the respective API provider (VirusTotal, AbuseIPDB, Shodan, AlienVault OTX, abuse.ch). No intermediary servers are used.
+- **Local storage only**: API keys are encrypted with AES-256-GCM via Android Keystore and stored on-device. Search history and bookmarks are stored in a local Room database.
+- **No third-party SDKs**: No advertising, tracking, or analytics SDKs are included.
+
+---
+
 ## 📋 License
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+
+> **Note:** This project includes [iText7](https://itextpdf.com/) (AGPL-3.0) for PDF export functionality. The full source code is available in this repository.

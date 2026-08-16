@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-  namespace = "com.example.ioclookup"
+  namespace = "com.vismitmv.ioclookup"
   compileSdk = 36
   defaultConfig {
     applicationId = "com.vismitmv.ioclookup"
@@ -44,6 +44,11 @@ android {
       excludes += "/META-INF/*.kotlin_module"
       excludes += "mozilla/public-suffix-list.txt"
     }
+  }
+
+  dependenciesInfo {
+      includeInApk = false
+      includeInBundle = false
   }
 }
 

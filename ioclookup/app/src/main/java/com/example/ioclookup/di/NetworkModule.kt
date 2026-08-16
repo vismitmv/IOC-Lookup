@@ -36,7 +36,7 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
 
-        if (com.example.ioclookup.BuildConfig.DEBUG) {
+        if (com.vismitmv.ioclookup.BuildConfig.DEBUG) {
             val redactingLogging = okhttp3.Interceptor { chain ->
                 val request = chain.request()
                 val url = request.url.toString().replace(Regex("([?&]key=)[^&]+"), "$1[REDACTED]")
