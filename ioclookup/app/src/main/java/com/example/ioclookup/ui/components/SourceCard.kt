@@ -39,10 +39,12 @@ fun SourceCard(
     var showRawJson by remember { mutableStateOf(false) }
     val clipboard = LocalClipboardManager.current
 
+    val appColors = LocalAppColors.current
+
     Card(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardSurface)
+        colors = CardDefaults.cardColors(containerColor = appColors.surface)
     ) {
         // Header
         Row(

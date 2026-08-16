@@ -3,52 +3,98 @@ package com.example.ioclookup.theme
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 
-private val DarkColorScheme = darkColorScheme(
-    primary = ElectricCyan,
-    onPrimary = DeepNavy,
-    primaryContainer = NeonPurple,
-    onPrimaryContainer = TextPrimary,
-    secondary = VioletAccent,
-    onSecondary = TextPrimary,
-    secondaryContainer = CardSurfaceVariant,
-    onSecondaryContainer = TextSecondary,
-    background = DeepNavy,
-    onBackground = TextPrimary,
-    surface = DarkSurface,
-    onSurface = TextPrimary,
-    surfaceVariant = CardSurface,
-    onSurfaceVariant = TextSecondary,
-    outline = DividerColor,
-    error = VerdictMalicious,
+data class AppColors(
+    val background: Color = DeepNavy,
+    val surface: Color = CardSurface,
+    val surfaceVariant: Color = CardSurfaceVariant,
+    val textPrimary: Color = TextPrimary,
+    val textSecondary: Color = TextSecondary,
+    val textMuted: Color = TextMuted,
+    val accent: Color = ElectricCyan,
+    val divider: Color = DividerColor
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = LightPrimary,
-    onPrimary = LightOnPrimary,
-    secondary = VioletAccent,
-    background = LightBackground,
-    onBackground = Color(0xFF111827),
-    surface = LightSurface,
-    onSurface = Color(0xFF1F2937),
-    surfaceVariant = Color(0xFFE8EAF0),
-    onSurfaceVariant = Color(0xFF4B5563),
-    outline = Color(0xFFCDD5E0),
-    error = VerdictMalicious,
-)
+val LocalAppColors = staticCompositionLocalOf { AppColors() }
 
-private fun Color(color: Long) = androidx.compose.ui.graphics.Color(color)
+fun parseHexColor(hex: String, defaultColor: Color = ElectricCyan): Color {
+    return try {
+        val clean = hex.removePrefix("#").trim()
+        val colorInt = android.graphics.Color.parseColor("#$clean")
+        Color(colorInt)
+    } catch (e: Exception) {
+        defaultColor
+    }
+}
 
 @Composable
 fun IOCLookupTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    accentColorHex: String = "#00D4FF",
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    val accentColor = parseHexColor(accentColorHex, ElectricCyan)
 
-    MaterialTheme(
-        colorScheme = colorScheme,
-        typography = IocTypography,
-        content = content
-    )
+    val appColors = if (darkTheme) {
+        AppColors(
+            background = Color(0xFF0A0E1A),
+            surface = Color(0xFF161B2E),
+            surfaceVariant = Color(0xFF1E2640),
+            textPrimary = Color(0xFFE8EAED),
+            textSecondary = Color(0xFF9AA0AC),
+            textMuted = Color(0xFF555F7A),
+            accent = accentColor,
+            divider = Color(0xFF2A3050)
+        )
+    } else {
+        AppColors(
+            background = Color(0xFFF1F5F9),
+            surface = Color(0xFFFFFFFF),
+            surfaceVariant = Color(0xFFE2E8F0),
+            textPrimary = Color(0xFF0F172A),
+            textSecondary = Color(0xFF475569),
+            textMuted = Color(0xFF94A3B8),
+            accent = accentColor,
+            divider = Color(0xFFCBD5E1)
+        )
+    }
+
+    val colorScheme = if (darkTheme) {
+        darkColorScheme(
+            primary = accentColor,
+            onPrimary = appColors.background,
+            background = appColors.background,
+            onBackground = appColors.textPrimary,
+            surface = appColors.surface,
+            onSurface = appColors.textPrimary,
+            surfaceVariant = appColors.surfaceVariant,
+            onSurfaceVariant = appColors.textSecondary,
+            outline = appColors.divider,
+            error = VerdictMalicious
+        )
+    } else {
+        lightColorScheme(
+            primary = accentColor,
+            onPrimary = Color.White,
+            background = appColors.background,
+            onBackground = appColors.textPrimary,
+            surface = appColors.surface,
+            onSurface = appColors.textPrimary,
+            surfaceVariant = appColors.surfaceVariant,
+            onSurfaceVariant = appColors.textSecondary,
+            outline = appColors.divider,
+            error = VerdictMalicious
+        )
+    }
+
+    CompositionLocalProvider(LocalAppColors provides appColors) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            typography = IocTypography,
+            content = content
+        )
+    }
 }

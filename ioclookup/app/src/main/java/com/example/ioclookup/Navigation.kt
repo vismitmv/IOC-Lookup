@@ -40,12 +40,13 @@ val bottomNavItems = listOf(
 fun MainNavigation() {
     val navController = rememberNavController()
     val historyViewModel: HistoryViewModel = hiltViewModel()
+    val appColors = LocalAppColors.current
 
     Scaffold(
-        containerColor = DeepNavy,
+        containerColor = appColors.background,
         bottomBar = {
             NavigationBar(
-                containerColor = DarkSurface,
+                containerColor = appColors.surface,
                 tonalElevation = 0.dp
             ) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -68,11 +69,11 @@ fun MainNavigation() {
                             Text(screen.label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
                         },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = ElectricCyan,
-                            selectedTextColor = ElectricCyan,
-                            unselectedIconColor = TextMuted,
-                            unselectedTextColor = TextMuted,
-                            indicatorColor = ElectricCyan.copy(alpha = 0.12f)
+                            selectedIconColor = appColors.accent,
+                            selectedTextColor = appColors.accent,
+                            unselectedIconColor = appColors.textMuted,
+                            unselectedTextColor = appColors.textMuted,
+                            indicatorColor = appColors.accent.copy(alpha = 0.12f)
                         )
                     )
                 }

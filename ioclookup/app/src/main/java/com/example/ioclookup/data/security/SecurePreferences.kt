@@ -30,9 +30,11 @@ class SecurePreferences @Inject constructor(
 
         const val KEY_CACHE_TTL_HOURS = "cache_ttl_hours"
         const val KEY_THEME = "theme"  // "system" | "light" | "dark"
+        const val KEY_ACCENT_COLOR = "accent_color" // hex e.g. "#00D4FF"
 
         const val DEFAULT_CACHE_TTL_HOURS = 24
         const val DEFAULT_THEME = "system"
+        const val DEFAULT_ACCENT_COLOR = "#00D4FF"
     }
 
     private val masterKey = MasterKey.Builder(context)
@@ -89,4 +91,8 @@ class SecurePreferences @Inject constructor(
     var theme: String
         get() = prefs.getString(KEY_THEME, DEFAULT_THEME) ?: DEFAULT_THEME
         set(value) = prefs.edit().putString(KEY_THEME, value).apply()
+
+    var accentColorHex: String
+        get() = prefs.getString(KEY_ACCENT_COLOR, DEFAULT_ACCENT_COLOR) ?: DEFAULT_ACCENT_COLOR
+        set(value) = prefs.edit().putString(KEY_ACCENT_COLOR, value).apply()
 }

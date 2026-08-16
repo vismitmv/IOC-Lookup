@@ -40,6 +40,8 @@ fun HistoryScreen(
     val scope = rememberCoroutineScope()
     var showClearDialog by remember { mutableStateOf(false) }
 
+    val appColors = LocalAppColors.current
+
     if (showClearDialog) {
         AlertDialog(
             onDismissRequest = { showClearDialog = false },
@@ -54,27 +56,27 @@ fun HistoryScreen(
             dismissButton = {
                 TextButton(onClick = { showClearDialog = false }) { Text("Cancel") }
             },
-            containerColor = CardSurface
+            containerColor = appColors.surface
         )
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = DeepNavy,
+        containerColor = appColors.background,
         topBar = {
             TopAppBar(
                 title = { Text("History", fontWeight = FontWeight.Bold) },
                 actions = {
                     if (lookups.isNotEmpty()) {
                         IconButton(onClick = { showClearDialog = true }) {
-                            Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear All", tint = TextSecondary)
+                            Icon(Icons.Filled.DeleteSweep, contentDescription = "Clear All", tint = appColors.textSecondary)
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepNavy,
-                    titleContentColor = TextPrimary,
-                    actionIconContentColor = TextSecondary
+                    containerColor = appColors.background,
+                    titleContentColor = appColors.textPrimary,
+                    actionIconContentColor = appColors.textSecondary
                 )
             )
         }

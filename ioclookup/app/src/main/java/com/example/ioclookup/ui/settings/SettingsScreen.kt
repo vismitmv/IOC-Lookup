@@ -30,15 +30,16 @@ fun SettingsScreen(
     onClearHistory: () -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val appColors = LocalAppColors.current
 
     Scaffold(
-        containerColor = DeepNavy,
+        containerColor = appColors.background,
         topBar = {
             TopAppBar(
                 title = { Text("Settings", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepNavy,
-                    titleContentColor = TextPrimary
+                    containerColor = appColors.background,
+                    titleContentColor = appColors.textPrimary
                 )
             )
         }
@@ -102,7 +103,7 @@ fun SettingsScreen(
                 Text(
                     "Cache TTL: ${state.cacheTtlHours} hour${if (state.cacheTtlHours != 1) "s" else ""}",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary
+                    color = appColors.textPrimary
                 )
                 Slider(
                     value = state.cacheTtlHours.toFloat(),
@@ -110,21 +111,23 @@ fun SettingsScreen(
                     valueRange = 1f..72f,
                     steps = 70,
                     colors = SliderDefaults.colors(
-                        thumbColor = ElectricCyan,
-                        activeTrackColor = ElectricCyan,
-                        inactiveTrackColor = DividerColor
+                        thumbColor = appColors.accent,
+                        activeTrackColor = appColors.accent,
+                        inactiveTrackColor = appColors.divider
                     )
                 )
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("1h", style = MaterialTheme.typography.labelSmall, color = TextMuted)
-                    Text("72h", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                    Text("1h", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
+                    Text("72h", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            // ── Theme ─────────────────────────────────────────────────────
-            SettingsSection(title = "Theme", icon = Icons.Filled.Palette) {
+            // ── Theme & Appearance ─────────────────────────────────────────
+            SettingsSection(title = "Theme & Appearance", icon = Icons.Filled.Palette, accentColor = appColors.accent) {
+                Text("Theme Mode", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
+                Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("system" to "System", "light" to "Light", "dark" to "Dark").forEach { (key, label) ->
                         val selected = state.theme == key
@@ -134,12 +137,78 @@ fun SettingsScreen(
                             label = { Text(label) },
                             leadingIcon = if (selected) {{ Icon(Icons.Filled.Check, null, modifier = Modifier.size(14.dp)) }} else null,
                             colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = ElectricCyan.copy(alpha = 0.2f),
-                                selectedLabelColor = ElectricCyan
+                                selectedContainerColor = appColors.accent.copy(alpha = 0.2f),
+                                selectedLabelColor = appColors.accent
                             )
                         )
                     }
                 }
+
+                Spacer(Modifier.height(16.dp))
+                Text("App Accent Color", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
+                Spacer(Modifier.height(8.dp))
+
+                // Color Swatches
+                val colorPresets = listOf(
+                    "#00D4FF" to "Cyan",
+                    "#00E676" to "Green",
+                    "#9D4EDD" to "Purple",
+                    "#FF1744" to "Red",
+                    "#FF9800" to "Amber",
+                    "#1E88E5" to "Blue"
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    colorPresets.forEach { (hex, name) ->
+                        val color = parseHexColor(hex)
+                        val isSelected = state.accentColorHex.equals(hex, ignoreCase = true)
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(color)
+                                .border(
+                                    width = if (isSelected) 2.5.dp else 0.dp,
+                                    color = if (isSelected) appColors.textPrimary else Color.Transparent,
+                                    shape = androidx.compose.foundation.shape.CircleShape
+                                )
+                                .clickable { viewModel.setAccentColor(hex) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isSelected) {
+                                Icon(Icons.Filled.Check, contentDescription = name, tint = Color.White, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+
+                // Custom Hex Input Field
+                var customHexInput by remember(state.accentColorHex) { mutableStateOf(state.accentColorHex) }
+                OutlinedTextField(
+                    value = customHexInput,
+                    onValueChange = { input ->
+                        customHexInput = input
+                        if (input.matches(Regex("^#?[0-9a-fA-F]{6}$"))) {
+                            val formatted = if (input.startsWith("#")) input else "#$input"
+                            viewModel.setAccentColor(formatted)
+                        }
+                    },
+                    label = { Text("Custom Hex Color") },
+                    placeholder = { Text("#00D4FF") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = appColors.accent,
+                        unfocusedBorderColor = appColors.divider,
+                        focusedTextColor = appColors.textPrimary,
+                        unfocusedTextColor = appColors.textPrimary
+                    )
+                )
             }
 
             Spacer(Modifier.height(16.dp))
@@ -300,20 +369,21 @@ fun SettingsScreen(
 private fun SettingsSection(
     title: String,
     icon: ImageVector,
-    accentColor: Color = ElectricCyan,
+    accentColor: Color = LocalAppColors.current.accent,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val appColors = LocalAppColors.current
     Card(
         shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardSurface)
+        colors = CardDefaults.cardColors(containerColor = appColors.surface)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 14.dp)) {
                 Icon(icon, contentDescription = null, tint = accentColor, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(8.dp))
-                Text(title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = appColors.textPrimary, fontWeight = FontWeight.SemiBold)
             }
-            HorizontalDivider(color = DividerColor, thickness = 0.5.dp, modifier = Modifier.padding(bottom = 14.dp))
+            HorizontalDivider(color = appColors.divider, thickness = 0.5.dp, modifier = Modifier.padding(bottom = 14.dp))
             content()
         }
     }

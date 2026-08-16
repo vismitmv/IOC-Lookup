@@ -29,7 +29,8 @@ data class SettingsUiState(
     val shodanEnabled: Boolean = true,
     val otxEnabled: Boolean = true,
     val cacheTtlHours: Int = 24,
-    val theme: String = "system"
+    val theme: String = "system",
+    val accentColorHex: String = "#00D4FF"
 )
 
 @HiltViewModel
@@ -62,7 +63,8 @@ class SettingsViewModel @Inject constructor(
         shodanEnabled = prefs.shodanEnabled,
         otxEnabled = prefs.otxEnabled,
         cacheTtlHours = prefs.cacheTtlHours,
-        theme = prefs.theme
+        theme = prefs.theme,
+        accentColorHex = prefs.accentColorHex
     )
 
     fun setVtKey(key: String) { prefs.vtApiKey = key; _state.update { it.copy(vtApiKey = key) } }
@@ -77,6 +79,7 @@ class SettingsViewModel @Inject constructor(
 
     fun setCacheTtl(hours: Int) { prefs.cacheTtlHours = hours; _state.update { it.copy(cacheTtlHours = hours) } }
     fun setTheme(theme: String) { prefs.theme = theme; _state.update { it.copy(theme = theme) } }
+    fun setAccentColor(hex: String) { prefs.accentColorHex = hex; _state.update { it.copy(accentColorHex = hex) } }
 
     fun addCustomFeed(name: String, urlTemplate: String, headerName: String?, headerValue: String?, jsonPath: String) {
         viewModelScope.launch {

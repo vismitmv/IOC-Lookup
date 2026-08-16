@@ -35,16 +35,18 @@ fun BookmarksScreen(
     var editingItem by remember { mutableStateOf<LookupResult?>(null) }
     var noteText by remember { mutableStateOf("") }
 
+    val appColors = LocalAppColors.current
+
     // Edit note bottom sheet
     editingItem?.let { item ->
         ModalBottomSheet(
             onDismissRequest = { editingItem = null },
-            containerColor = CardSurface
+            containerColor = appColors.surface
         ) {
             Column(modifier = Modifier.padding(24.dp)) {
-                Text("Edit Bookmark Note", style = MaterialTheme.typography.titleLarge, color = TextPrimary, fontWeight = FontWeight.Bold)
+                Text("Edit Bookmark Note", style = MaterialTheme.typography.titleLarge, color = appColors.textPrimary, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(6.dp))
-                Text(item.ioc, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(item.ioc, style = MaterialTheme.typography.bodySmall, color = appColors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(
                     value = noteText,
@@ -54,10 +56,10 @@ fun BookmarksScreen(
                     minLines = 3,
                     maxLines = 5,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = ElectricCyan,
-                        unfocusedBorderColor = DividerColor,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary
+                        focusedBorderColor = appColors.accent,
+                        unfocusedBorderColor = appColors.divider,
+                        focusedTextColor = appColors.textPrimary,
+                        unfocusedTextColor = appColors.textPrimary
                     ),
                     shape = RoundedCornerShape(12.dp)
                 )
@@ -81,7 +83,7 @@ fun BookmarksScreen(
                             editingItem = null
                         },
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan, contentColor = DeepNavy)
+                        colors = ButtonDefaults.buttonColors(containerColor = appColors.accent, contentColor = appColors.background)
                     ) {
                         Text("Save Note", fontWeight = FontWeight.Bold)
                     }
@@ -92,13 +94,13 @@ fun BookmarksScreen(
     }
 
     Scaffold(
-        containerColor = DeepNavy,
+        containerColor = appColors.background,
         topBar = {
             TopAppBar(
                 title = { Text("Bookmarks", fontWeight = FontWeight.Bold) },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepNavy,
-                    titleContentColor = TextPrimary
+                    containerColor = appColors.background,
+                    titleContentColor = appColors.textPrimary
                 )
             )
         }

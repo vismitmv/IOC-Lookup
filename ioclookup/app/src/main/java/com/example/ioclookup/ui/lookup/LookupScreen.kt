@@ -51,9 +51,11 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
         }
     }
 
+    val appColors = LocalAppColors.current
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        containerColor = DeepNavy
+        containerColor = appColors.background
     ) { padding ->
         Column(
             modifier = Modifier
@@ -71,7 +73,7 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
                         .size(42.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(
-                            Brush.linearGradient(listOf(ElectricCyan, NeonPurple))
+                            Brush.linearGradient(listOf(appColors.accent, NeonPurple))
                         ),
                     contentAlignment = Alignment.Center
                 ) {
@@ -79,8 +81,8 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
                 }
                 Spacer(Modifier.width(12.dp))
                 Column {
-                    Text("IOC Lookup", style = MaterialTheme.typography.headlineMedium, color = TextPrimary, fontWeight = FontWeight.Bold)
-                    Text("Threat Intelligence", style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+                    Text("IOC Lookup", style = MaterialTheme.typography.headlineMedium, color = appColors.textPrimary, fontWeight = FontWeight.Bold)
+                    Text("Threat Intelligence", style = MaterialTheme.typography.labelMedium, color = appColors.textSecondary)
                 }
             }
 
@@ -89,7 +91,7 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
             // ── Input Card ──────────────────────────────────────────────────
             Card(
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = CardSurface)
+                colors = CardDefaults.cardColors(containerColor = appColors.surface)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Type badge
