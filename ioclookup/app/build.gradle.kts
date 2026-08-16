@@ -10,11 +10,11 @@ android {
   namespace = "com.example.ioclookup"
   compileSdk = 36
   defaultConfig {
-    applicationId = "com.example.ioclookup"
+    applicationId = "com.vismitmv.ioclookup"
     minSdk = 26
     targetSdk = 36
     versionCode = 1
-    versionName = "1.0"
+    versionName = "1.0.0"
   }
 
   buildTypes {

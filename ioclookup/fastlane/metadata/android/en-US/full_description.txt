@@ -1,0 +1,9 @@
+IOC Lookup is a privacy-focused threat intelligence tool designed for security analysts, incident responders, and privacy enthusiasts.
+
+Key Features:
+• Multi-Source Scanning: Query VirusTotal, AbuseIPDB, Shodan, and AlienVault OTX concurrently.
+• abuse.ch Integration: Seamless threat lookup against URLhaus, MalwareBazaar, and ThreatFox.
+• Custom Threat Feeds: Import plain-text banlists (1 indicator per line) for sub-millisecond offline matching.
+• Automatic Verdict Engines: Real-time threat calculation with instant high-confidence malicious overrides.
+• Dark & Light Modes: Fully custom accent color picker and adaptive Material 3 UI.
+• Privacy First: Direct API communication with no intermediary servers or telemetry.

@@ -1,72 +1,44 @@
-# 🛡️ IOC Lookup — Threat Intelligence Investigation App
+# 🛡️ IOC Lookup — Mobile Threat Intelligence
 
-![Kotlin](https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white)
-![Android](https://img.shields.io/badge/Platform-Android%208.0%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)
-![Material 3](https://img.shields.io/badge/UI-Jetpack%20Compose%20%2F%20Material%203-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white)
-![Security](https://img.shields.io/badge/Security-AES256%20Hardware--Encrypted-FF6D00?style=for-the-badge&logo=google-keychain&logoColor=white)
+**IOC Lookup** is a high-performance Android application built for SOC analysts, incident responders, and security enthusiasts to perform rapid Indicator of Compromise (IOC) lookups across major threat intelligence platforms and offline threat feeds.
 
-**IOC Lookup** is a native Android security application designed for SOC analysts, incident responders, and threat researchers to investigate Indicators of Compromise (IP addresses, Domains, URLs, and File Hashes) simultaneously across multiple threat intelligence providers.
+![Android](https://img.shields.io/badge/Platform-Android-green.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Kotlin](https://img.shields.io/badge/Language-Kotlin-orange.svg)
 
 ---
 
 ## ✨ Features
 
-- 🔍 **Automated IOC Type Detection:** Auto-detects IPv4, IPv6, Domain, URL, MD5, SHA-1, and SHA-256 inputs on paste or typing.
-- ⚡ **Parallel Multi-Source Engines:** Queries multiple threat intelligence providers concurrently using Kotlin Coroutines:
-  - **VirusTotal:** Detection ratios, malicious tags, engine breakdowns.
-  - **AbuseIPDB:** Abuse confidence scores, report counts, ISP, usage type, country location.
-  - **Shodan & Shodan InternetDB:** Open port enumeration, hostnames, running services, CPEs, and CVE vulnerabilities.
-  - **AlienVault OTX:** Threat pulse counts, adversary attribution, targeted industries, and malware family tagging.
-- ⚖️ **Weighted Verdict Card:** Calculates an overall verdict (`CLEAN`, `SUSPICIOUS`, `MALICIOUS`) based on normalized scores across all providers.
-- 📑 **Raw JSON Inspection:** Expandable raw JSON view for every source response with one-tap clipboard copying.
-- 📜 **Offline History & Bookmarks:** Encrypted local storage using Room SQLite database with TTL-based caching.
-- 📄 **PDF & Text Export:** Generate formatted PDF threat reports or raw markdown/text summaries for sharing via Android intent.
-- 🎨 **Modern Cyber Aesthetics:** Dark mode glassmorphism UI built with Jetpack Compose & Material 3.
+- 🔍 **Multi-Source IOC Scanning**: Query IPs, Domains, URLs, and File Hashes (MD5, SHA-1, SHA-256) simultaneously across:
+  - **VirusTotal**
+  - **AbuseIPDB**
+  - **Shodan**
+  - **AlienVault OTX**
+- 🛡️ **abuse.ch Suite Integration**: Deep threat intelligence checking against **URLhaus**, **MalwareBazaar**, and **ThreatFox**.
+- ⚡ **Offline Custom Threat Feeds**: Import plain-text banlists (e.g., URLhaus Online URLs, BinaryDefense IPs, or custom firewall lists) into an indexed Room database for sub-millisecond local offline matching.
+- 🎯 **Automated Verdict Engine**: Real-time verdict calculation with high-confidence threat overrides so flagged threats are never marked as clean.
+- 🎨 **Adaptive Theme & Accent Customization**: Full Light/Dark mode support with custom accent color picker swatches & hex code inputs.
+- 🔒 **Security & Privacy First**: Direct HTTPS communication with zero telemetry, zero middleman proxy servers, and secure encrypted Android Keystore API storage.
 
 ---
 
-## 🔒 Security Architecture
-
-Built from the ground up for security-conscious professionals:
-
-1. **Hardware-Backed AES-256 Key Storage:** API keys are encrypted using Android Keystore Master Key via `EncryptedSharedPreferences` (`AES256_GCM` & `AES256_SIV`). Credentials never touch plain text `SharedPreferences` or disk.
-2. **Zero Logcat Credential Leaks:** Network logging interceptors sanitize query parameters (`key=***`) and redact sensitive API headers (`x-api-key`, `Authorization`, `OTX-API-KEY`). Network logging is disabled entirely in Release builds.
-3. **Strict Network Security Config:** Enforces `cleartextTrafficPermitted="false"` across the entire app and restricts connections to TLS 1.2/1.3 with system trust anchors to prevent MITM proxy interception.
-4. **Code Obfuscation & Shrinking:** Release builds are minified, resource-shrunk, and obfuscated using **R8 / ProGuard** rules.
-
----
-
-## 🏗️ Architecture & Stack
-
-- **Architecture:** Clean Architecture + MVVM (UI Layer, Domain Use Cases, Data Repository Layer).
-- **Dependency Injection:** Hilt (Dagger 2.60.1).
-- **Asynchronous Execution:** Kotlin Coroutines & Flow.
-- **Networking:** Retrofit 2 + OkHttp 4 + Gson.
-- **Local Persistence:** Room 2.7 + EncryptedSharedPreferences.
-- **UI Framework:** Jetpack Compose + Material 3 + Navigation Compose.
-
----
-
-## 🛠️ Building & Installation
+## 🛠️ Build & Install
 
 ### Prerequisites
-- Android Studio Ladybug (2024.2.1+) or JDK 17.
-- Android SDK 36 (Min SDK 26 - Android 8.0).
+- Android Studio Ladybug or newer
+- JDK 17+
+- Android SDK 36 (minSdk 26)
 
-### Build APK
+### Compiling from Source
 ```bash
-# Clone repository
-git clone https://github.com/vismitmv/ioc-lookup-android.git
-cd ioc-lookup-android/ioclookup
-
-# Build Release APK
+git clone https://github.com/vismitmv/IOC-Lookup.git
+cd IOC-Lookup/ioclookup
 ./gradlew assembleRelease
 ```
-The compiled, obfuscated APK will be generated at:
-`app/build/outputs/apk/release/IOC_Lookup_v1.0.0.apk`
 
 ---
 
-## 📄 License
+## 📋 License
 
-Distributed under the Apache 2.0 License. See `LICENSE` for more information.
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.

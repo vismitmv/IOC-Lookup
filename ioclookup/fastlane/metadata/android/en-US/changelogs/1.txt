@@ -1,0 +1,1 @@
+Initial F-Droid release of IOC Lookup with multi-source threat intelligence scanning, abuse.ch integration, custom threat feeds, and accent customization.
