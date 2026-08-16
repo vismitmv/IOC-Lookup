@@ -213,23 +213,21 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            Spacer(Modifier.height(16.dp))
-
             // ── Custom Threat Feeds ───────────────────────────────────────
             val blocklistFeeds by viewModel.blocklistFeeds.collectAsStateWithLifecycle()
             val isSyncingBlocklists by viewModel.isSyncingBlocklists.collectAsStateWithLifecycle()
             var showAddBlocklistDialog by remember { mutableStateOf(false) }
 
-            SettingsSection(title = "Custom Threat Feeds", icon = Icons.Filled.RssFeed, accentColor = ElectricCyan) {
+            SettingsSection(title = "Custom Threat Feeds", icon = Icons.Filled.RssFeed, accentColor = appColors.accent) {
                 Text(
                     "Import plain-text threat lists (1 indicator per line) for instant offline matching.",
                     style = MaterialTheme.typography.labelMedium,
-                    color = TextMuted
+                    color = appColors.textMuted
                 )
                 Spacer(Modifier.height(10.dp))
 
                 // Presets Buttons
-                Text("Quick Add Presets:", style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                Text("Quick Add Presets:", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
                 Spacer(Modifier.height(6.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AssistChip(
@@ -239,8 +237,8 @@ fun SettingsScreen(
                                 "https://urlhaus.abuse.ch/downloads/text_online/"
                             )
                         },
-                        label = { Text("URLhaus Online URLs") },
-                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = ElectricCyan) }
+                        label = { Text("URLhaus Online URLs", color = appColors.textPrimary) },
+                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = appColors.accent) }
                     )
                     AssistChip(
                         onClick = {
@@ -249,15 +247,15 @@ fun SettingsScreen(
                                 "https://binarydefense.com/banlist.txt"
                             )
                         },
-                        label = { Text("BinaryDefense IPs") },
-                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = ElectricCyan) }
+                        label = { Text("BinaryDefense IPs", color = appColors.textPrimary) },
+                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = appColors.accent) }
                     )
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 if (blocklistFeeds.isEmpty()) {
-                    Text("No custom threat feeds configured.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    Text("No custom threat feeds configured.", style = MaterialTheme.typography.bodySmall, color = appColors.textMuted)
                 } else {
                     blocklistFeeds.forEach { feed ->
                         Row(
@@ -267,20 +265,20 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
-                                Text(feed.name, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                Text(feed.name, style = MaterialTheme.typography.bodyMedium, color = appColors.textPrimary, fontWeight = FontWeight.SemiBold)
                                 Text(
                                     "${feed.entryCount} entries • ${if (feed.lastSyncedAt > 0) "Synced" else "Not synced"}",
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = if (feed.entryCount > 0) VerdictClean else TextMuted
+                                    color = if (feed.entryCount > 0) VerdictClean else appColors.textMuted
                                 )
                             }
                             IconButton(onClick = { viewModel.syncBlocklistFeed(feed) }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = "Sync", tint = ElectricCyan, modifier = Modifier.size(18.dp))
+                                Icon(Icons.Filled.Refresh, contentDescription = "Sync", tint = appColors.accent, modifier = Modifier.size(18.dp))
                             }
                             Switch(
                                 checked = feed.isEnabled,
                                 onCheckedChange = { viewModel.toggleBlocklistFeed(feed) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = ElectricCyan)
+                                colors = SwitchDefaults.colors(checkedThumbColor = appColors.accent, uncheckedTrackColor = appColors.divider)
                             )
                             IconButton(onClick = { viewModel.deleteBlocklistFeed(feed) }) {
                                 Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious, modifier = Modifier.size(18.dp))
@@ -295,11 +293,11 @@ fun SettingsScreen(
                         onClick = { showAddBlocklistDialog = true },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, ElectricCyan.copy(alpha = 0.5f))
+                        border = BorderStroke(1.dp, appColors.accent.copy(alpha = 0.5f))
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = null, tint = ElectricCyan)
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = appColors.accent)
                         Spacer(Modifier.width(6.dp))
-                        Text("Add Threat Feed URL", color = ElectricCyan)
+                        Text("Add Threat Feed URL", color = appColors.accent)
                     }
 
                     if (blocklistFeeds.isNotEmpty()) {
@@ -307,10 +305,10 @@ fun SettingsScreen(
                             onClick = { viewModel.syncAllBlocklists() },
                             enabled = !isSyncingBlocklists,
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan)
+                            colors = ButtonDefaults.buttonColors(containerColor = appColors.accent, contentColor = appColors.background)
                         ) {
                             if (isSyncingBlocklists) {
-                                CircularProgressIndicator(Modifier.size(16.dp), color = TextPrimary, strokeWidth = 2.dp)
+                                CircularProgressIndicator(Modifier.size(16.dp), color = appColors.textPrimary, strokeWidth = 2.dp)
                             } else {
                                 Icon(Icons.Filled.Sync, contentDescription = null)
                                 Spacer(Modifier.width(4.dp))
@@ -334,30 +332,25 @@ fun SettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             // ── Danger Zone ───────────────────────────────────────────────
-            SettingsSection(title = "Danger Zone", icon = Icons.Filled.Warning, accentColor = VerdictMalicious) {
-                Button(
+            SettingsSection(title = "Data Management", icon = Icons.Filled.Warning, accentColor = VerdictMalicious) {
+                OutlinedButton(
                     onClick = onClearHistory,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = VerdictMaliciousContainer,
-                        contentColor = VerdictMalicious
-                    ),
-                    shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth(),
-                    border = BorderStroke(1.dp, VerdictMalicious.copy(alpha = 0.4f))
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = VerdictMalicious),
+                    border = BorderStroke(1.dp, VerdictMalicious.copy(alpha = 0.5f)),
+                    shape = RoundedCornerShape(10.dp)
                 ) {
-                    Icon(Icons.Filled.DeleteForever, contentDescription = null)
+                    Icon(Icons.Filled.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
-                    Text("Clear All History", fontWeight = FontWeight.SemiBold)
+                    Text("Clear All Lookup History")
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
-
-            // App version info
+            Spacer(Modifier.height(32.dp))
             Text(
-                "IOC Lookup v1.0 • Built for security professionals",
+                "IOC Lookup v1.0.0 • Secure Threat Intel",
                 style = MaterialTheme.typography.labelSmall,
-                color = TextMuted,
+                color = appColors.textMuted,
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             )
             Spacer(Modifier.height(80.dp))
@@ -397,13 +390,14 @@ private fun ApiKeyField(
     accentColor: Color,
     hint: String
 ) {
+    val appColors = LocalAppColors.current
     var showKey by remember { mutableStateOf(false) }
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label, color = accentColor.copy(alpha = 0.8f)) },
-        placeholder = { Text(hint, color = TextMuted) },
+        placeholder = { Text(hint, color = appColors.textMuted) },
         visualTransformation = if (showKey) VisualTransformation.None else PasswordVisualTransformation(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
         trailingIcon = {
@@ -411,7 +405,7 @@ private fun ApiKeyField(
                 Icon(
                     if (showKey) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
                     contentDescription = "Toggle visibility",
-                    tint = TextMuted,
+                    tint = appColors.textMuted,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -421,15 +415,16 @@ private fun ApiKeyField(
                 modifier = Modifier
                     .size(8.dp)
                     .clip(androidx.compose.foundation.shape.CircleShape)
-                    .background(if (value.isNotBlank()) accentColor else TextMuted)
+                    .background(if (value.isNotBlank()) accentColor else appColors.textMuted)
             )
         },
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = accentColor,
-            unfocusedBorderColor = DividerColor,
+            unfocusedBorderColor = appColors.divider,
             focusedLabelColor = accentColor,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary
+            unfocusedLabelColor = appColors.textMuted,
+            focusedTextColor = appColors.textPrimary,
+            unfocusedTextColor = appColors.textPrimary
         ),
         shape = RoundedCornerShape(10.dp),
         singleLine = true
@@ -443,6 +438,7 @@ private fun SourceToggle(
     accentColor: Color,
     onToggle: (Boolean) -> Unit
 ) {
+    val appColors = LocalAppColors.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -453,17 +449,17 @@ private fun SourceToggle(
             modifier = Modifier
                 .size(10.dp)
                 .clip(androidx.compose.foundation.shape.CircleShape)
-                .background(if (enabled) accentColor else TextMuted)
+                .background(if (enabled) accentColor else appColors.textMuted)
         )
         Spacer(Modifier.width(12.dp))
-        Text(label, style = MaterialTheme.typography.bodyMedium, color = if (enabled) TextPrimary else TextMuted, modifier = Modifier.weight(1f))
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = if (enabled) appColors.textPrimary else appColors.textMuted, modifier = Modifier.weight(1f))
         Switch(
             checked = enabled,
             onCheckedChange = onToggle,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = accentColor,
                 checkedTrackColor = accentColor.copy(alpha = 0.3f),
-                uncheckedTrackColor = DividerColor
+                uncheckedTrackColor = appColors.divider
             )
         )
     }
@@ -474,13 +470,14 @@ private fun AddBlocklistDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, url: String) -> Unit
 ) {
+    val appColors = LocalAppColors.current
     var name by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CardSurface,
-        title = { Text("Add Custom Threat Feed", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        containerColor = appColors.surface,
+        title = { Text("Add Custom Threat Feed", color = appColors.textPrimary, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
@@ -488,29 +485,42 @@ private fun AddBlocklistDialog(
                     onValueChange = { name = it },
                     label = { Text("Feed Name (e.g. BinaryDefense)") },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = appColors.accent,
+                        unfocusedBorderColor = appColors.divider,
+                        focusedTextColor = appColors.textPrimary,
+                        unfocusedTextColor = appColors.textPrimary
+                    )
                 )
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
                     label = { Text("Plain-Text Feed URL") },
                     placeholder = { Text("https://binarydefense.com/banlist.txt") },
-                    supportingText = { Text("Plain-text list (1 indicator per line)", color = TextMuted) },
+                    supportingText = { Text("Plain-text list (1 indicator per line)", color = appColors.textMuted) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = appColors.accent,
+                        unfocusedBorderColor = appColors.divider,
+                        focusedTextColor = appColors.textPrimary,
+                        unfocusedTextColor = appColors.textPrimary
+                    )
                 )
             }
         },
         confirmButton = {
             Button(
                 onClick = { if (name.isNotBlank() && url.startsWith("http")) onConfirm(name, url) },
-                enabled = name.isNotBlank() && url.startsWith("http")
+                enabled = name.isNotBlank() && url.startsWith("http"),
+                colors = ButtonDefaults.buttonColors(containerColor = appColors.accent, contentColor = appColors.background)
             ) {
                 Text("Add & Sync Feed")
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text("Cancel", color = appColors.textSecondary) }
         }
     )
 }

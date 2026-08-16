@@ -92,20 +92,20 @@ fun HistoryScreen(
                 value = filter.query,
                 onValueChange = { viewModel.onQueryChanged(it) },
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("Search history…", color = TextMuted) },
-                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = TextSecondary) },
+                placeholder = { Text("Search history…", color = appColors.textMuted) },
+                leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = appColors.textSecondary) },
                 trailingIcon = {
                     if (filter.query.isNotBlank()) {
                         IconButton(onClick = { viewModel.onQueryChanged("") }) {
-                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = TextSecondary)
+                            Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = appColors.textSecondary)
                         }
                     }
                 },
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = ElectricCyan,
-                    unfocusedBorderColor = DividerColor,
-                    focusedTextColor = TextPrimary,
-                    unfocusedTextColor = TextPrimary
+                    focusedBorderColor = appColors.accent,
+                    unfocusedBorderColor = appColors.divider,
+                    focusedTextColor = appColors.textPrimary,
+                    unfocusedTextColor = appColors.textPrimary
                 ),
                 shape = RoundedCornerShape(12.dp),
                 singleLine = true
@@ -125,7 +125,7 @@ fun HistoryScreen(
                         "MALICIOUS" -> VerdictMalicious
                         "SUSPICIOUS" -> VerdictSuspicious
                         "CLEAN" -> VerdictClean
-                        else -> ElectricCyan
+                        else -> appColors.accent
                     }
                     FilterChip(
                         selected = selected,
@@ -144,78 +144,34 @@ fun HistoryScreen(
             if (lookups.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Filled.History, contentDescription = null, tint = TextMuted, modifier = Modifier.size(64.dp))
+                        Icon(Icons.Filled.History, contentDescription = null, tint = appColors.textMuted, modifier = Modifier.size(64.dp))
                         Spacer(Modifier.height(12.dp))
-                        Text("No lookups yet", style = MaterialTheme.typography.titleMedium, color = TextSecondary)
-                        Text("Your lookup history will appear here", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                        Text("No lookups found", style = MaterialTheme.typography.titleMedium, color = appColors.textSecondary)
+                        Text("Your lookup history will appear here", style = MaterialTheme.typography.bodySmall, color = appColors.textMuted)
                     }
                 }
             } else {
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(lookups, key = { it.id }) { item ->
-                        SwipeToDismissHistoryItem(
-                            item = item,
-                            onDismiss = {
-                                viewModel.deleteItem(item.id)
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Deleted ${item.ioc}")
-                                }
-                            },
-                            onClick = { onItemClick(item) }
-                        )
+                        HistoryItem(item = item, onClick = { onItemClick(item) })
                     }
-                    item { Spacer(Modifier.height(80.dp)) }
                 }
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SwipeToDismissHistoryItem(
+private fun HistoryItem(
     item: LookupResult,
-    onDismiss: () -> Unit,
     onClick: () -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { it == SwipeToDismissBoxValue.EndToStart }
-    )
-
-    LaunchedEffect(dismissState.currentValue) {
-        if (dismissState.currentValue == SwipeToDismissBoxValue.EndToStart) {
-            onDismiss()
-        }
-    }
-
-    SwipeToDismissBox(
-        state = dismissState,
-        backgroundContent = {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(VerdictMaliciousContainer)
-                    .padding(end = 20.dp),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious)
-            }
-        },
-        enableDismissFromStartToEnd = false
-    ) {
-        HistoryItemCard(item = item, onClick = onClick)
-    }
-}
-
-@Composable
-private fun HistoryItemCard(item: LookupResult, onClick: () -> Unit) {
-    val dateFormat = remember { SimpleDateFormat("MMM d, HH:mm", Locale.getDefault()) }
+    val appColors = LocalAppColors.current
     val verdictColor = when (item.verdict) {
         Verdict.MALICIOUS -> VerdictMalicious
         Verdict.SUSPICIOUS -> VerdictSuspicious
         Verdict.CLEAN -> VerdictClean
-        Verdict.UNKNOWN -> VerdictUnknown
+        else -> VerdictUnknown
     }
     val typeColor = when {
         item.iocType.isHash -> NeonPurple
@@ -223,11 +179,12 @@ private fun HistoryItemCard(item: LookupResult, onClick: () -> Unit) {
         item.iocType == IocType.URL -> ShodanGreen
         else -> OTXOrange
     }
+    val dateFormat = remember { SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()) }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
-        shape = RoundedCornerShape(14.dp),
-        colors = CardDefaults.cardColors(containerColor = CardSurface)
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = appColors.surface)
     ) {
         Row(
             modifier = Modifier.padding(14.dp),
@@ -245,7 +202,7 @@ private fun HistoryItemCard(item: LookupResult, onClick: () -> Unit) {
                 Text(
                     item.ioc,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
+                    color = appColors.textPrimary,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -260,8 +217,8 @@ private fun HistoryItemCard(item: LookupResult, onClick: () -> Unit) {
                     ) {
                         Text(item.iocType.displayName, style = MaterialTheme.typography.labelSmall, color = typeColor)
                     }
-                    Text("•", color = TextMuted, style = MaterialTheme.typography.labelSmall)
-                    Text(dateFormat.format(Date(item.timestamp)), style = MaterialTheme.typography.labelSmall, color = TextMuted)
+                    Text("•", color = appColors.textMuted, style = MaterialTheme.typography.labelSmall)
+                    Text(dateFormat.format(Date(item.timestamp)), style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
                 }
             }
             Spacer(Modifier.width(8.dp))
@@ -273,7 +230,7 @@ private fun HistoryItemCard(item: LookupResult, onClick: () -> Unit) {
                     fontWeight = FontWeight.SemiBold
                 )
                 if (item.isBookmarked) {
-                    Icon(Icons.Filled.Bookmark, contentDescription = null, tint = ElectricCyan, modifier = Modifier.size(14.dp))
+                    Icon(Icons.Filled.Bookmark, contentDescription = null, tint = appColors.accent, modifier = Modifier.size(14.dp))
                 }
             }
         }

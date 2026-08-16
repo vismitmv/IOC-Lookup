@@ -126,24 +126,24 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
                         value = uiState.inputText,
                         onValueChange = { viewModel.onInputChanged(it) },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Paste IP, domain, URL, or hash…", color = TextMuted) },
-                        label = { Text("Indicator of Compromise", color = TextSecondary) },
+                        placeholder = { Text("Paste IP, domain, URL, or hash…", color = appColors.textMuted) },
+                        label = { Text("Indicator of Compromise", color = appColors.textSecondary) },
                         trailingIcon = {
                             if (uiState.inputText.isNotBlank()) {
                                 IconButton(onClick = { viewModel.onInputChanged("") }) {
-                                    Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = TextSecondary)
+                                    Icon(Icons.Filled.Clear, contentDescription = "Clear", tint = appColors.textSecondary)
                                 }
                             }
                         },
                         isError = uiState.error != null,
                         supportingText = uiState.error?.let { { Text(it, color = VerdictMalicious) } },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = ElectricCyan,
-                            unfocusedBorderColor = DividerColor,
-                            focusedLabelColor = ElectricCyan,
-                            cursorColor = ElectricCyan,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary
+                            focusedBorderColor = appColors.accent,
+                            unfocusedBorderColor = appColors.divider,
+                            focusedLabelColor = appColors.accent,
+                            cursorColor = appColors.accent,
+                            focusedTextColor = appColors.textPrimary,
+                            unfocusedTextColor = appColors.textPrimary
                         ),
                         shape = RoundedCornerShape(12.dp),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -166,14 +166,14 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
                         modifier = Modifier.fillMaxWidth().height(50.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = ElectricCyan,
-                            contentColor = DeepNavy,
-                            disabledContainerColor = DividerColor,
-                            disabledContentColor = TextMuted
+                            containerColor = appColors.accent,
+                            contentColor = appColors.background,
+                            disabledContainerColor = appColors.divider,
+                            disabledContentColor = appColors.textMuted
                         )
                     ) {
                         if (uiState.isLooking) {
-                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = DeepNavy)
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = appColors.background)
                             Spacer(Modifier.width(8.dp))
                             Text("Querying sources…", fontWeight = FontWeight.Bold)
                         } else {

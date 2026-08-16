@@ -65,8 +65,8 @@ fun SourceCard(
             }
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = TextSecondary)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = appColors.textPrimary, fontWeight = FontWeight.SemiBold)
+                Text(subtitle, style = MaterialTheme.typography.labelSmall, color = appColors.textSecondary)
             }
             when (result) {
                 is SourceResult.Loading -> CircularProgressIndicator(
@@ -78,7 +78,7 @@ fun SourceCard(
                 else -> Icon(
                     if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
                     contentDescription = "Expand",
-                    tint = TextSecondary
+                    tint = appColors.textSecondary
                 )
             }
         }
@@ -108,7 +108,7 @@ fun SourceCard(
             exit = shrinkVertically(animationSpec = tween(200)) + fadeOut()
         ) {
             Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
-                HorizontalDivider(color = DividerColor, thickness = 0.5.dp)
+                HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
                 Spacer(Modifier.height(12.dp))
                 content()
                 Spacer(Modifier.height(8.dp))
@@ -120,44 +120,26 @@ fun SourceCard(
                             onClick = { showRawJson = !showRawJson },
                             contentPadding = PaddingValues(0.dp)
                         ) {
-                            Icon(
-                                if (showRawJson) Icons.Filled.Code else Icons.Filled.DataObject,
-                                contentDescription = "JSON",
-                                modifier = Modifier.size(14.dp),
-                                tint = accentColor
-                            )
-                            Spacer(Modifier.width(4.dp))
                             Text(
-                                if (showRawJson) "Hide JSON" else "View Raw JSON",
-                                style = MaterialTheme.typography.labelMedium,
+                                if (showRawJson) "Hide Raw JSON" else "View Raw JSON",
+                                style = MaterialTheme.typography.labelSmall,
                                 color = accentColor
                             )
                         }
-                        if (showRawJson) {
-                            Spacer(Modifier.width(8.dp))
-                            IconButton(
-                                onClick = { clipboard.setText(AnnotatedString(raw)) },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(Icons.Filled.ContentCopy, contentDescription = "Copy JSON", modifier = Modifier.size(14.dp), tint = TextSecondary)
-                            }
-                        }
                     }
-                    AnimatedVisibility(visible = showRawJson) {
+                    if (showRawJson) {
                         SelectionContainer {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(CardSurfaceVariant)
-                                    .padding(10.dp)
+                                    .background(appColors.surfaceVariant)
+                                    .padding(12.dp)
                             ) {
                                 Text(
-                                    text = raw,
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = FontFamily.Monospace
-                                    ),
-                                    color = TextSecondary
+                                    raw,
+                                    style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                                    color = appColors.textPrimary
                                 )
                             }
                         }
@@ -173,9 +155,11 @@ fun InfoRow(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
-    valueColor: Color = TextPrimary,
+    valueColor: Color? = null,
     copyable: Boolean = true
 ) {
+    val appColors = LocalAppColors.current
+    val actualValueColor = valueColor ?: appColors.textPrimary
     val clipboard = LocalClipboardManager.current
     var copied by remember { mutableStateOf(false) }
 
@@ -188,13 +172,13 @@ fun InfoRow(
         Text(
             text = label,
             style = MaterialTheme.typography.labelMedium,
-            color = TextMuted,
+            color = appColors.textMuted,
             modifier = Modifier.width(110.dp)
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            color = valueColor,
+            color = actualValueColor,
             modifier = Modifier.weight(1f)
         )
         if (copyable) {
@@ -209,7 +193,7 @@ fun InfoRow(
                     if (copied) Icons.Filled.Check else Icons.Filled.ContentCopy,
                     contentDescription = "Copy",
                     modifier = Modifier.size(14.dp),
-                    tint = if (copied) VerdictClean else TextMuted
+                    tint = if (copied) VerdictClean else appColors.textMuted
                 )
             }
             LaunchedEffect(copied) {
