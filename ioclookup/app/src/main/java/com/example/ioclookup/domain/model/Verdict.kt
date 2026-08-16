@@ -18,36 +18,43 @@ enum class Verdict(val displayName: String, val color: Long) {
          * @param otxPulses    AlienVault OTX pulse count — weight 25% (capped influence)
          */
         fun fromScores(
+            vtCount: Int? = null,
             vtRatio: Double? = null,
             abuseScore: Int? = null,
-            otxPulses: Int? = null
+            otxPulses: Int? = null,
+            abuseChFlagged: Boolean? = null,
+            customFeedsFlagged: Int? = null
         ): Verdict {
-            var weightedScore = 0.0
-            var totalWeight = 0.0
+            // Instant override for high-confidence malicious signals
+            val isVtMalicious = (vtCount ?: 0) >= 3 || (vtRatio ?: 0.0) >= 0.05
+            val isAbuseMalicious = (abuseScore ?: 0) >= 50
+            val isOtxMalicious = (otxPulses ?: 0) >= 3
+            val isAbuseChMalicious = abuseChFlagged == true
+            val isCustomMalicious = (customFeedsFlagged ?: 0) > 0
 
-            vtRatio?.let {
-                weightedScore += it * 0.40
-                totalWeight += 0.40
-            }
-            abuseScore?.let {
-                weightedScore += (it / 100.0) * 0.35
-                totalWeight += 0.35
-            }
-            otxPulses?.let {
-                val normalized = (it.coerceAtMost(50) / 50.0)
-                weightedScore += normalized * 0.25
-                totalWeight += 0.25
+            var maliciousSignalCount = 0
+            if (isVtMalicious) maliciousSignalCount++
+            if (isAbuseMalicious) maliciousSignalCount++
+            if (isOtxMalicious) maliciousSignalCount++
+            if (isAbuseChMalicious) maliciousSignalCount++
+            if (isCustomMalicious) maliciousSignalCount++
+
+            if (maliciousSignalCount >= 1 || (vtCount ?: 0) >= 2) {
+                return MALICIOUS
             }
 
-            if (totalWeight == 0.0) return UNKNOWN
+            // Suspicious signals
+            val isVtSuspicious = (vtCount ?: 0) >= 1
+            val isAbuseSuspicious = (abuseScore ?: 0) >= 15
+            val isOtxSuspicious = (otxPulses ?: 0) >= 1
 
-            val score = weightedScore / totalWeight
-
-            return when {
-                score >= 0.60 -> MALICIOUS
-                score >= 0.15 -> SUSPICIOUS
-                else -> CLEAN
+            if (isVtSuspicious || isAbuseSuspicious || isOtxSuspicious) {
+                return SUSPICIOUS
             }
+
+            // Check if any sources actually completed
+            val hasData = vtRatio != null || abuseScore != null || otxPulses != null || abuseChFlagged != null || customFeedsFlagged != null
+            return if (hasData) CLEAN else UNKNOWN
         }
     }
 }

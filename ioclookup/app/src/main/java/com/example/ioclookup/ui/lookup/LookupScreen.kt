@@ -273,12 +273,21 @@ fun LookupScreen(viewModel: LookupViewModel = hiltViewModel()) {
                             AbuseIPDBCard(abuse)
                             Spacer(Modifier.height(10.dp))
                         }
+                        (r.sources["abusech"] as? SourceResult.AbuseCh)?.let { abuseCh ->
+                            AbuseChCard(abuseCh)
+                            Spacer(Modifier.height(10.dp))
+                        }
                         r.shodanResult?.let { sh ->
                             ShodanCard(sh)
                             Spacer(Modifier.height(10.dp))
                         }
                         r.otxResult?.let { otx ->
                             OtxCard(otx)
+                            Spacer(Modifier.height(10.dp))
+                        }
+                        // Custom Feeds
+                        r.sources.values.filterIsInstance<SourceResult.CustomFeed>().forEach { customFeed ->
+                            CustomFeedCard(customFeed)
                             Spacer(Modifier.height(10.dp))
                         }
                         // Errors from sources
@@ -475,5 +484,46 @@ private fun OtxCard(otx: SourceResult.OTX) {
             Spacer(Modifier.height(10.dp))
             InfoRow("Adversaries", otx.adversaries.joinToString(", "), valueColor = VerdictSuspicious)
         }
+    }
+}
+
+@Composable
+private fun AbuseChCard(abuseCh: SourceResult.AbuseCh) {
+    val accent = if (abuseCh.isFlagged) VerdictMalicious else VerdictClean
+    SourceCard(
+        title = "abuse.ch (URLhaus/MB)",
+        subtitle = if (abuseCh.isFlagged) "MALICIOUS DETECTED" else "Clean / Not Flagged",
+        accentColor = accent,
+        icon = Icons.Filled.Shield,
+        result = abuseCh
+    ) {
+        InfoRow("Status", abuseCh.status?.uppercase() ?: "CLEAN", valueColor = accent)
+        abuseCh.threatType?.let { InfoRow("Threat Type", it, valueColor = VerdictMalicious) }
+        abuseCh.signature?.let { InfoRow("Signature", it, valueColor = VerdictMalicious) }
+        abuseCh.reporter?.let { InfoRow("Reporter", it) }
+        if (abuseCh.tags.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Text("Tags", style = MaterialTheme.typography.labelMedium, color = TextMuted)
+            Spacer(Modifier.height(6.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                abuseCh.tags.forEach { TagChip(it, accent) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CustomFeedCard(feed: SourceResult.CustomFeed) {
+    val accent = if (feed.isFlagged) VerdictMalicious else VerdictClean
+    SourceCard(
+        title = feed.feedName,
+        subtitle = if (feed.isFlagged) "FLAGGED MALICIOUS" else "Clean (HTTP ${feed.responseCode})",
+        accentColor = accent,
+        icon = Icons.Filled.RssFeed,
+        result = feed
+    ) {
+        InfoRow("Result", if (feed.isFlagged) "MALICIOUS" else "CLEAN", valueColor = accent)
+        feed.summary?.let { InfoRow("Summary", it) }
+        InfoRow("HTTP Status", "${feed.responseCode}")
     }
 }

@@ -110,4 +110,20 @@ object NetworkModule {
             .build()
             .create(OtxService::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(): OkHttpClient = baseOkHttp().build()
+
+    @Provides
+    @Singleton
+    fun provideAbuseChService(gson: Gson): com.example.ioclookup.data.remote.abusech.AbuseChService {
+        val client = baseOkHttp().build()
+        return Retrofit.Builder()
+            .baseUrl("https://urlhaus-api.abuse.ch/v1/")
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(com.example.ioclookup.data.remote.abusech.AbuseChService::class.java)
+    }
 }

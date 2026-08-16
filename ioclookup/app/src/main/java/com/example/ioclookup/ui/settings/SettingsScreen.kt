@@ -144,6 +144,69 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            // ── Custom Threat Feeds ───────────────────────────────────────
+            val customFeeds by viewModel.customFeeds.collectAsStateWithLifecycle()
+            var showAddFeedDialog by remember { mutableStateOf(false) }
+
+            SettingsSection(title = "Custom Threat Feeds", icon = Icons.Filled.RssFeed, accentColor = ElectricCyan) {
+                Text(
+                    "Integrate your own MISP or REST threat feeds. Place {ioc} in the URL template.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = TextMuted
+                )
+                Spacer(Modifier.height(10.dp))
+
+                if (customFeeds.isEmpty()) {
+                    Text("No custom threat feeds configured.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                } else {
+                    customFeeds.forEach { feed ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(feed.name, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
+                                Text(feed.urlTemplate, style = MaterialTheme.typography.labelSmall, color = TextMuted, maxLines = 1)
+                            }
+                            Switch(
+                                checked = feed.isEnabled,
+                                onCheckedChange = { viewModel.toggleCustomFeed(feed) },
+                                colors = SwitchDefaults.colors(checkedThumbColor = ElectricCyan)
+                            )
+                            IconButton(onClick = { viewModel.deleteCustomFeed(feed) }) {
+                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious, modifier = Modifier.size(18.dp))
+                            }
+                        }
+                    }
+                }
+
+                Spacer(Modifier.height(10.dp))
+                OutlinedButton(
+                    onClick = { showAddFeedDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, ElectricCyan.copy(alpha = 0.5f))
+                ) {
+                    Icon(Icons.Filled.Add, contentDescription = null, tint = ElectricCyan)
+                    Spacer(Modifier.width(6.dp))
+                    Text("Add Custom Feed", color = ElectricCyan)
+                }
+            }
+
+            if (showAddFeedDialog) {
+                AddCustomFeedDialog(
+                    onDismiss = { showAddFeedDialog = false },
+                    onConfirm = { name, url, headerName, headerVal, path ->
+                        viewModel.addCustomFeed(name, url, headerName, headerVal, path)
+                        showAddFeedDialog = false
+                    }
+                )
+            }
+
+            Spacer(Modifier.height(16.dp))
+
             // ── Danger Zone ───────────────────────────────────────────────
             SettingsSection(title = "Danger Zone", icon = Icons.Filled.Warning, accentColor = VerdictMalicious) {
                 Button(
@@ -277,4 +340,76 @@ private fun SourceToggle(
             )
         )
     }
+}
+
+@Composable
+private fun AddCustomFeedDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, url: String, headerName: String?, headerVal: String?, jsonPath: String) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var headerName by remember { mutableStateOf("") }
+    var headerVal by remember { mutableStateOf("") }
+    var jsonPath by remember { mutableStateOf("malicious") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = CardSurface,
+        title = { Text("Add Custom Threat Feed", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Feed Name (e.g. MISP Internal)") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = url,
+                    onValueChange = { url = it },
+                    label = { Text("URL Template with {ioc}") },
+                    placeholder = { Text("https://feed.org/api/{ioc}") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = headerName,
+                    onValueChange = { headerName = it },
+                    label = { Text("Auth Header Name (Optional)") },
+                    placeholder = { Text("Authorization or X-API-Key") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = headerVal,
+                    onValueChange = { headerVal = it },
+                    label = { Text("Auth Header Token (Optional)") },
+                    placeholder = { Text("Bearer secret_token") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = jsonPath,
+                    onValueChange = { jsonPath = it },
+                    label = { Text("JSON Malicious Field Name") },
+                    placeholder = { Text("malicious or is_flagged") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (name.isNotBlank() && url.isNotBlank()) onConfirm(name, url, headerName, headerVal, jsonPath) },
+                enabled = name.isNotBlank() && url.contains("{ioc}")
+            ) {
+                Text("Add Feed")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }

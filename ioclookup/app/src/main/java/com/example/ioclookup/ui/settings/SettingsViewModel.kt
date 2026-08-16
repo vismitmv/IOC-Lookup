@@ -9,6 +9,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import javax.inject.Inject
 
+import androidx.lifecycle.viewModelScope
+import com.example.ioclookup.data.local.dao.CustomFeedDao
+import com.example.ioclookup.data.local.entity.CustomFeedEntity
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
 data class SettingsUiState(
     val vtApiKey: String = "",
     val abuseApiKey: String = "",
@@ -24,11 +31,15 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val prefs: SecurePreferences
+    private val prefs: SecurePreferences,
+    private val customFeedDao: CustomFeedDao
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(loadFromPrefs())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+
+    val customFeeds: StateFlow<List<CustomFeedEntity>> = customFeedDao.getAllFeedsFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     private fun loadFromPrefs() = SettingsUiState(
         vtApiKey = prefs.vtApiKey,
@@ -55,4 +66,31 @@ class SettingsViewModel @Inject constructor(
 
     fun setCacheTtl(hours: Int) { prefs.cacheTtlHours = hours; _state.update { it.copy(cacheTtlHours = hours) } }
     fun setTheme(theme: String) { prefs.theme = theme; _state.update { it.copy(theme = theme) } }
+
+    fun addCustomFeed(name: String, urlTemplate: String, headerName: String?, headerValue: String?, jsonPath: String) {
+        viewModelScope.launch {
+            customFeedDao.insertFeed(
+                CustomFeedEntity(
+                    name = name,
+                    urlTemplate = urlTemplate,
+                    headerName = headerName?.ifBlank { null },
+                    headerValue = headerValue?.ifBlank { null },
+                    jsonPathMalicious = jsonPath.ifBlank { "malicious" },
+                    isEnabled = true
+                )
+            )
+        }
+    }
+
+    fun toggleCustomFeed(feed: CustomFeedEntity) {
+        viewModelScope.launch {
+            customFeedDao.updateFeed(feed.copy(isEnabled = !feed.isEnabled))
+        }
+    }
+
+    fun deleteCustomFeed(feed: CustomFeedEntity) {
+        viewModelScope.launch {
+            customFeedDao.deleteFeed(feed)
+        }
+    }
 }

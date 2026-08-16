@@ -17,13 +17,20 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import com.example.ioclookup.data.local.dao.CustomFeedDao
+import com.example.ioclookup.data.remote.abusech.AbuseChService
+import com.example.ioclookup.data.repository.CustomFeedRepository
+
 @Singleton
 class IocRepository @Inject constructor(
     private val lookupDao: LookupDao,
+    private val customFeedDao: CustomFeedDao,
+    private val customFeedRepository: CustomFeedRepository,
     private val vtService: VirusTotalService,
     private val abuseService: AbuseIPDBService,
     private val shodanService: ShodanService,
     private val otxService: OtxService,
+    private val abuseChService: AbuseChService,
     private val prefs: SecurePreferences,
     private val gson: Gson
 ) {
@@ -88,20 +95,41 @@ class IocRepository @Inject constructor(
                 async { fetchOtx(ioc, iocType) }
             } else null
 
+            // ── abuse.ch ──────────────────────────────────────────────────────
+            val abuseChDeferred = async { fetchAbuseCh(ioc, iocType) }
+
+            // ── Custom Feeds ──────────────────────────────────────────────────
+            val activeCustomFeeds = customFeedDao.getActiveFeeds()
+            val customFeedDeferreds = activeCustomFeeds.map { feed ->
+                async { customFeedRepository.executeCustomFeed(feed, ioc) }
+            }
+
             vtDeferred?.await()?.let { sources["virustotal"] = it }
             abuseDeferred?.await()?.let { sources["abuseipdb"] = it }
             shodanDeferred?.await()?.let { sources["shodan"] = it }
             otxDeferred?.await()?.let { sources["otx"] = it }
+            abuseChDeferred.await().let { sources["abusech"] = it }
+
+            customFeedDeferreds.forEachIndexed { index, deferred ->
+                val feedName = activeCustomFeeds.getOrNull(index)?.name ?: "custom_feed_$index"
+                sources["custom_$feedName"] = deferred.await()
+            }
         }
 
         val vtResult = sources["virustotal"] as? SourceResult.VirusTotal
         val abuseResult = sources["abuseipdb"] as? SourceResult.AbuseIPDB
         val otxResult = sources["otx"] as? SourceResult.OTX
+        val abuseChResult = sources["abusech"] as? SourceResult.AbuseCh
+        val customFeedResults = sources.values.filterIsInstance<SourceResult.CustomFeed>()
+        val customMaliciousCount = customFeedResults.count { it.isFlagged }
 
         val verdict = Verdict.fromScores(
+            vtCount = vtResult?.detectionCount,
             vtRatio = vtResult?.detectionRatio,
             abuseScore = abuseResult?.abuseConfidenceScore,
-            otxPulses = otxResult?.pulseCount
+            otxPulses = otxResult?.pulseCount,
+            abuseChFlagged = abuseChResult?.isFlagged,
+            customFeedsFlagged = customMaliciousCount
         )
 
         val result = LookupResult(
@@ -166,19 +194,36 @@ class IocRepository @Inject constructor(
                     )
                 }
                 IocType.URL -> {
-                    val submitResp = vtService.submitUrl(ioc)
-                    if (!submitResp.isSuccessful) return SourceResult.Error("virustotal", error = parseErrorBody(submitResp))
-                    val analysisId = submitResp.body()?.data?.id ?: return SourceResult.Error("virustotal", error = "No analysis ID")
-                    kotlinx.coroutines.delay(3000)
-                    val resp = vtService.getUrlAnalysis(analysisId)
-                    if (!resp.isSuccessful) return SourceResult.Error("virustotal", error = parseErrorBody(resp))
-                    val attrs = resp.body()?.data?.attributes
-                    val raw = gson.toJson(resp.body())
-                    SourceResult.VirusTotal(
-                        detectionCount = attrs?.stats?.malicious ?: 0,
-                        totalEngines = attrs?.stats?.total ?: 0,
-                        rawJson = raw
-                    )
+                    // Try instant GET /urls/{id} using base64 URL ID without padding
+                    val urlId = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(ioc.toByteArray())
+                    val directResp = vtService.getUrlReport(urlId)
+                    if (directResp.isSuccessful && directResp.body() != null) {
+                        val attrs = directResp.body()?.data?.attributes
+                        val raw = gson.toJson(directResp.body())
+                        SourceResult.VirusTotal(
+                            detectionCount = attrs?.stats?.malicious ?: 0,
+                            totalEngines = attrs?.stats?.total ?: 0,
+                            categories = attrs?.categories?.values?.distinct() ?: emptyList(),
+                            tags = attrs?.tags ?: emptyList(),
+                            reputation = attrs?.reputation ?: 0,
+                            rawJson = raw
+                        )
+                    } else {
+                        // Fallback to submitting new analysis
+                        val submitResp = vtService.submitUrl(ioc)
+                        if (!submitResp.isSuccessful) return SourceResult.Error("virustotal", error = parseErrorBody(submitResp))
+                        val analysisId = submitResp.body()?.data?.id ?: return SourceResult.Error("virustotal", error = "No analysis ID")
+                        kotlinx.coroutines.delay(3000)
+                        val resp = vtService.getUrlAnalysis(analysisId)
+                        if (!resp.isSuccessful) return SourceResult.Error("virustotal", error = parseErrorBody(resp))
+                        val attrs = resp.body()?.data?.attributes
+                        val raw = gson.toJson(resp.body())
+                        SourceResult.VirusTotal(
+                            detectionCount = attrs?.stats?.malicious ?: 0,
+                            totalEngines = attrs?.stats?.total ?: 0,
+                            rawJson = raw
+                        )
+                    }
                 }
                 IocType.MD5, IocType.SHA1, IocType.SHA256 -> {
                     val resp = vtService.getFileReport(ioc)
@@ -311,6 +356,76 @@ class IocRepository @Inject constructor(
         }
     }
 
+    private suspend fun fetchAbuseCh(ioc: String, type: IocType): SourceResult {
+        return try {
+            when (type) {
+                IocType.URL -> {
+                    val resp = abuseChService.checkUrl(url = ioc)
+                    if (resp.isSuccessful && resp.body() != null) {
+                        val body = resp.body()!!
+                        val raw = gson.toJson(body)
+                        val isOnline = body.urlStatus.equals("online", ignoreCase = true)
+                        val isMalicious = body.queryStatus.equals("ok", ignoreCase = true)
+                        SourceResult.AbuseCh(
+                            isFlagged = isMalicious,
+                            status = body.urlStatus ?: body.queryStatus,
+                            threatType = body.threat,
+                            reporter = body.reporter,
+                            tags = body.tags ?: emptyList(),
+                            rawJson = raw
+                        )
+                    } else {
+                        SourceResult.AbuseCh(isFlagged = false, status = "clean", rawJson = null)
+                    }
+                }
+                IocType.DOMAIN, IocType.IPv4, IocType.IPv6 -> {
+                    val tfResp = abuseChService.searchIoc(searchTerm = ioc)
+                    if (tfResp.isSuccessful && tfResp.body() != null) {
+                        val body = tfResp.body()!!
+                        val raw = gson.toJson(body)
+                        val firstMatch = body.data?.firstOrNull()
+                        val isFlagged = body.queryStatus.equals("ok", ignoreCase = true) && firstMatch != null
+                        SourceResult.AbuseCh(
+                            isFlagged = isFlagged,
+                            status = if (isFlagged) "flagged" else "clean",
+                            threatType = firstMatch?.threatType,
+                            signature = firstMatch?.malwarePrintable,
+                            reporter = firstMatch?.reporter,
+                            tags = firstMatch?.tags ?: emptyList(),
+                            confidenceLevel = firstMatch?.confidenceLevel ?: 0,
+                            rawJson = raw
+                        )
+                    } else {
+                        SourceResult.AbuseCh(isFlagged = false, status = "clean", rawJson = null)
+                    }
+                }
+                IocType.MD5, IocType.SHA1, IocType.SHA256 -> {
+                    val mbResp = abuseChService.checkHash(hash = ioc)
+                    if (mbResp.isSuccessful && mbResp.body() != null) {
+                        val body = mbResp.body()!!
+                        val raw = gson.toJson(body)
+                        val firstMatch = body.data?.firstOrNull()
+                        val isFlagged = body.queryStatus.equals("ok", ignoreCase = true) && firstMatch != null
+                        SourceResult.AbuseCh(
+                            isFlagged = isFlagged,
+                            status = if (isFlagged) "flagged" else "clean",
+                            signature = firstMatch?.signature,
+                            threatType = firstMatch?.fileType,
+                            reporter = firstMatch?.reporter,
+                            tags = firstMatch?.tags ?: emptyList(),
+                            rawJson = raw
+                        )
+                    } else {
+                        SourceResult.AbuseCh(isFlagged = false, status = "clean", rawJson = null)
+                    }
+                }
+                IocType.UNKNOWN -> SourceResult.Error("abusech", error = "Unknown IOC type")
+            }
+        } catch (e: Exception) {
+            SourceResult.Error("abusech", error = e.message ?: "Unknown error")
+        }
+    }
+
     // ─── Mapper ─────────────────────────────────────────────────────────────
 
     private val sourceResultType = object : TypeToken<Map<String, Any>>() {}.type
@@ -385,6 +500,25 @@ class IocRepository @Inject constructor(
                 "industries" to result.industries,
                 "rawJson" to result.rawJson
             )
+            is SourceResult.AbuseCh -> mapOf(
+                "_type" to "abusech",
+                "isFlagged" to result.isFlagged,
+                "status" to result.status,
+                "threatType" to result.threatType,
+                "signature" to result.signature,
+                "reporter" to result.reporter,
+                "tags" to result.tags,
+                "confidenceLevel" to result.confidenceLevel,
+                "rawJson" to result.rawJson
+            )
+            is SourceResult.CustomFeed -> mapOf(
+                "_type" to "customfeed",
+                "feedName" to result.feedName,
+                "isFlagged" to result.isFlagged,
+                "summary" to result.summary,
+                "responseCode" to result.responseCode,
+                "rawJson" to result.rawJson
+            )
             is SourceResult.Error -> mapOf(
                 "_type" to "error",
                 "sourceName" to result.sourceName,
@@ -442,6 +576,23 @@ class IocRepository @Inject constructor(
                 malwareFamilies = (map["malwareFamilies"] as? List<String>) ?: emptyList(),
                 adversaries = (map["adversaries"] as? List<String>) ?: emptyList(),
                 industries = (map["industries"] as? List<String>) ?: emptyList(),
+                rawJson = map["rawJson"] as? String
+            )
+            "abusech" -> SourceResult.AbuseCh(
+                isFlagged = map["isFlagged"] as? Boolean ?: false,
+                status = map["status"] as? String,
+                threatType = map["threatType"] as? String,
+                signature = map["signature"] as? String,
+                reporter = map["reporter"] as? String,
+                tags = (map["tags"] as? List<String>) ?: emptyList(),
+                confidenceLevel = (map["confidenceLevel"] as? Double)?.toInt() ?: 0,
+                rawJson = map["rawJson"] as? String
+            )
+            "customfeed" -> SourceResult.CustomFeed(
+                feedName = (map["feedName"] as? String) ?: sourceKey,
+                isFlagged = map["isFlagged"] as? Boolean ?: false,
+                summary = map["summary"] as? String,
+                responseCode = (map["responseCode"] as? Double)?.toInt() ?: 200,
                 rawJson = map["rawJson"] as? String
             )
             "error" -> SourceResult.Error(

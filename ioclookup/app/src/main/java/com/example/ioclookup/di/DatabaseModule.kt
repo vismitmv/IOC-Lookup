@@ -24,4 +24,7 @@ object DatabaseModule {
 
     @Provides
     fun provideLookupDao(db: IocDatabase): LookupDao = db.lookupDao()
+
+    @Provides
+    fun provideCustomFeedDao(db: IocDatabase): com.example.ioclookup.data.local.dao.CustomFeedDao = db.customFeedDao()
 }

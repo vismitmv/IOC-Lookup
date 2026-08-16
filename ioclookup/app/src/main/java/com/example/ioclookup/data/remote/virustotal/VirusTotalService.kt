@@ -24,6 +24,9 @@ interface VirusTotalService {
 
     @GET("api/v3/analyses/{id}")
     suspend fun getUrlAnalysis(@Path("id") id: String): Response<VtAnalysisResponse>
+
+    @GET("api/v3/urls/{id}")
+    suspend fun getUrlReport(@Path("id") id: String): Response<VtDomainResponse>
 }
 
 // --- DTOs ---

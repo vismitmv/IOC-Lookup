@@ -65,6 +65,29 @@ sealed class SourceResult {
         override val error: String? = null
     ) : SourceResult()
 
+    data class AbuseCh(
+        val isFlagged: Boolean = false,
+        val status: String? = null,
+        val threatType: String? = null,
+        val signature: String? = null,
+        val reporter: String? = null,
+        val tags: List<String> = emptyList(),
+        val confidenceLevel: Int = 0,
+        override val rawJson: String? = null,
+        override val isLoading: Boolean = false,
+        override val error: String? = null
+    ) : SourceResult()
+
+    data class CustomFeed(
+        val feedName: String,
+        val isFlagged: Boolean = false,
+        val summary: String? = null,
+        val responseCode: Int = 200,
+        override val rawJson: String? = null,
+        override val isLoading: Boolean = false,
+        override val error: String? = null
+    ) : SourceResult()
+
     data class Loading(
         val sourceName: String,
         override val rawJson: String? = null,
