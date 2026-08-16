@@ -144,77 +144,16 @@ fun SettingsScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // ── Custom Threat Feeds ───────────────────────────────────────
-            val customFeeds by viewModel.customFeeds.collectAsStateWithLifecycle()
-            var showAddFeedDialog by remember { mutableStateOf(false) }
-
-            SettingsSection(title = "Custom Threat Feeds", icon = Icons.Filled.RssFeed, accentColor = ElectricCyan) {
-                Text(
-                    "Integrate your own MISP or REST threat feeds. Place {ioc} in the URL template.",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = TextMuted
-                )
-                Spacer(Modifier.height(10.dp))
-
-                if (customFeeds.isEmpty()) {
-                    Text("No custom threat feeds configured.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                } else {
-                    customFeeds.forEach { feed ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(feed.name, style = MaterialTheme.typography.bodyMedium, color = TextPrimary, fontWeight = FontWeight.SemiBold)
-                                Text(feed.urlTemplate, style = MaterialTheme.typography.labelSmall, color = TextMuted, maxLines = 1)
-                            }
-                            Switch(
-                                checked = feed.isEnabled,
-                                onCheckedChange = { viewModel.toggleCustomFeed(feed) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = ElectricCyan)
-                            )
-                            IconButton(onClick = { viewModel.deleteCustomFeed(feed) }) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious, modifier = Modifier.size(18.dp))
-                            }
-                        }
-                    }
-                }
-
-                Spacer(Modifier.height(10.dp))
-                OutlinedButton(
-                    onClick = { showAddFeedDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, ElectricCyan.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = null, tint = ElectricCyan)
-                    Spacer(Modifier.width(6.dp))
-                    Text("Add Custom Feed", color = ElectricCyan)
-                }
-            }
-
-            if (showAddFeedDialog) {
-                AddCustomFeedDialog(
-                    onDismiss = { showAddFeedDialog = false },
-                    onConfirm = { name, url, headerName, headerVal, path ->
-                        viewModel.addCustomFeed(name, url, headerName, headerVal, path)
-                        showAddFeedDialog = false
-                    }
-                )
-            }
-
             Spacer(Modifier.height(16.dp))
 
-            // ── Plain-Text Banlists (Sophos/Firewall Style) ─────────────
+            // ── Custom Threat Feeds ───────────────────────────────────────
             val blocklistFeeds by viewModel.blocklistFeeds.collectAsStateWithLifecycle()
             val isSyncingBlocklists by viewModel.isSyncingBlocklists.collectAsStateWithLifecycle()
             var showAddBlocklistDialog by remember { mutableStateOf(false) }
 
-            SettingsSection(title = "Firewall Banlists (Sophos Style)", icon = Icons.Filled.ListAlt, accentColor = OTXOrange) {
+            SettingsSection(title = "Custom Threat Feeds", icon = Icons.Filled.RssFeed, accentColor = ElectricCyan) {
                 Text(
-                    "Import 10,000+ IP/URL/Domain plain-text banlists (one indicator per line) for instant offline matching.",
+                    "Import plain-text threat lists (1 indicator per line) for instant offline matching.",
                     style = MaterialTheme.typography.labelMedium,
                     color = TextMuted
                 )
@@ -232,24 +171,24 @@ fun SettingsScreen(
                             )
                         },
                         label = { Text("URLhaus Online URLs") },
-                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = OTXOrange) }
+                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = ElectricCyan) }
                     )
                     AssistChip(
                         onClick = {
                             viewModel.addBlocklistFeed(
-                                "BinaryDefense Banlist",
+                                "BinaryDefense IP Feed",
                                 "https://binarydefense.com/banlist.txt"
                             )
                         },
                         label = { Text("BinaryDefense IPs") },
-                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = OTXOrange) }
+                        leadingIcon = { Icon(Icons.Filled.FlashOn, null, Modifier.size(14.dp), tint = ElectricCyan) }
                     )
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 if (blocklistFeeds.isEmpty()) {
-                    Text("No plain-text banlists added yet.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                    Text("No custom threat feeds configured.", style = MaterialTheme.typography.bodySmall, color = TextMuted)
                 } else {
                     blocklistFeeds.forEach { feed ->
                         Row(
@@ -272,7 +211,7 @@ fun SettingsScreen(
                             Switch(
                                 checked = feed.isEnabled,
                                 onCheckedChange = { viewModel.toggleBlocklistFeed(feed) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = OTXOrange)
+                                colors = SwitchDefaults.colors(checkedThumbColor = ElectricCyan)
                             )
                             IconButton(onClick = { viewModel.deleteBlocklistFeed(feed) }) {
                                 Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious, modifier = Modifier.size(18.dp))
@@ -287,11 +226,11 @@ fun SettingsScreen(
                         onClick = { showAddBlocklistDialog = true },
                         modifier = Modifier.weight(1f),
                         shape = RoundedCornerShape(10.dp),
-                        border = BorderStroke(1.dp, OTXOrange.copy(alpha = 0.5f))
+                        border = BorderStroke(1.dp, ElectricCyan.copy(alpha = 0.5f))
                     ) {
-                        Icon(Icons.Filled.Add, contentDescription = null, tint = OTXOrange)
+                        Icon(Icons.Filled.Add, contentDescription = null, tint = ElectricCyan)
                         Spacer(Modifier.width(6.dp))
-                        Text("Add Banlist URL", color = OTXOrange)
+                        Text("Add Threat Feed URL", color = ElectricCyan)
                     }
 
                     if (blocklistFeeds.isNotEmpty()) {
@@ -299,7 +238,7 @@ fun SettingsScreen(
                             onClick = { viewModel.syncAllBlocklists() },
                             enabled = !isSyncingBlocklists,
                             shape = RoundedCornerShape(10.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = OTXOrange)
+                            colors = ButtonDefaults.buttonColors(containerColor = ElectricCyan)
                         ) {
                             if (isSyncingBlocklists) {
                                 CircularProgressIndicator(Modifier.size(16.dp), color = TextPrimary, strokeWidth = 2.dp)
@@ -461,86 +400,6 @@ private fun SourceToggle(
 }
 
 @Composable
-private fun AddCustomFeedDialog(
-    onDismiss: () -> Unit,
-    onConfirm: (name: String, url: String, headerName: String?, headerVal: String?, jsonPath: String) -> Unit
-) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var headerName by remember { mutableStateOf("") }
-    var headerVal by remember { mutableStateOf("") }
-    var jsonPath by remember { mutableStateOf("malicious") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = CardSurface,
-        title = { Text("Add Custom Threat Feed", color = TextPrimary, fontWeight = FontWeight.Bold) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Feed Name (e.g. MISP Internal)") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = url,
-                    onValueChange = { url = it },
-                    label = { Text("URL Template with {ioc}") },
-                    placeholder = { Text("https://feed.org/api/{ioc}") },
-                    supportingText = {
-                        if (url.isNotBlank() && !url.contains("{ioc}")) {
-                            Text("URL must contain {ioc} (e.g. https://feed.org/api/{ioc})", color = VerdictMalicious)
-                        } else {
-                            Text("Use {ioc} where the IP/Domain/URL will be inserted", color = TextMuted)
-                        }
-                    },
-                    isError = url.isNotBlank() && !url.contains("{ioc}"),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = headerName,
-                    onValueChange = { headerName = it },
-                    label = { Text("Auth Header Name (Optional)") },
-                    placeholder = { Text("Authorization or X-API-Key") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = headerVal,
-                    onValueChange = { headerVal = it },
-                    label = { Text("Auth Header Token (Optional)") },
-                    placeholder = { Text("Bearer secret_token") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = jsonPath,
-                    onValueChange = { jsonPath = it },
-                    label = { Text("JSON Malicious Field Name") },
-                    placeholder = { Text("malicious or is_flagged") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { if (name.isNotBlank() && url.isNotBlank()) onConfirm(name, url, headerName, headerVal, jsonPath) },
-                enabled = name.isNotBlank() && url.contains("{ioc}")
-            ) {
-                Text("Add Feed")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
-        }
-    )
-}
-
-@Composable
 private fun AddBlocklistDialog(
     onDismiss: () -> Unit,
     onConfirm: (name: String, url: String) -> Unit
@@ -551,22 +410,22 @@ private fun AddBlocklistDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = CardSurface,
-        title = { Text("Add Plain-Text Banlist / Blocklist", color = TextPrimary, fontWeight = FontWeight.Bold) },
+        title = { Text("Add Custom Threat Feed", color = TextPrimary, fontWeight = FontWeight.Bold) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Banlist Name (e.g. BinaryDefense)") },
+                    label = { Text("Feed Name (e.g. BinaryDefense)") },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = url,
                     onValueChange = { url = it },
-                    label = { Text("Plain-Text List URL") },
+                    label = { Text("Plain-Text Feed URL") },
                     placeholder = { Text("https://binarydefense.com/banlist.txt") },
-                    supportingText = { Text("Plain-text file (1 indicator per line)", color = TextMuted) },
+                    supportingText = { Text("Plain-text list (1 indicator per line)", color = TextMuted) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -577,7 +436,7 @@ private fun AddBlocklistDialog(
                 onClick = { if (name.isNotBlank() && url.startsWith("http")) onConfirm(name, url) },
                 enabled = name.isNotBlank() && url.startsWith("http")
             ) {
-                Text("Add & Sync Banlist")
+                Text("Add & Sync Feed")
             }
         },
         dismissButton = {
