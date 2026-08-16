@@ -19,8 +19,8 @@ android {
 
   buildTypes {
     release {
-      isMinifyEnabled = false
-      isShrinkResources = false
+      isMinifyEnabled = true
+      isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
     }
   }
@@ -111,9 +111,6 @@ dependencies {
 
   // DataStore
   implementation(libs.datastore.preferences)
-
-  // OpenPDF (LGPL)
-  implementation(libs.openpdf)
 
   // Coil
   implementation(libs.coil.compose)

@@ -1,24 +1,31 @@
 # ProGuard & R8 Obfuscation & Shrinking Rules for IOC Lookup
 
-# Keep Gson Serialized Data Models
--keepclassmembers class * {
-    @com.google.gson.annotations.SerializedName <fields>;
-}
+# Keep Retrofit models from R8 stripping
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.vismitmv.ioclookup.model.** { *; }
+-keep interface com.vismitmv.ioclookup.api.** { *; }
 -keep class com.vismitmv.ioclookup.data.remote.** { *; }
 -keep class com.vismitmv.ioclookup.domain.model.** { *; }
 -keep class com.example.ioclookup.data.remote.** { *; }
 -keep class com.example.ioclookup.domain.model.** { *; }
 
+# Keep Gson serialization if used
+-keep class com.google.gson.** { *; }
+-keepattributes SerializedName
+
+# Keep OkHttp and Retrofit
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**
+-keep class retrofit2.** { *; }
+-keep class okhttp3.** { *; }
+
+# Coroutines
+-keepnames class kotlinx.coroutines.** { *; }
+
 # Room
 -keep class * extends androidx.room.RoomDatabase
 -dontwarn androidx.room.paging.**
-
-# Retrofit & OkHttp
--keepattributes Signature, InnerClasses, EnclosingMethod
--keepattributes RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
--keepclassmembers enum * { *; }
--dontwarn okhttp3.**
--dontwarn retrofit2.**
 
 # Hilt & Dagger
 -keep class dagger.hilt.** { *; }
@@ -28,12 +35,3 @@
 
 # Android Crypto / Security
 -keep class androidx.security.crypto.** { *; }
-
-# SLF4J / Logging optional dependencies
--dontwarn org.slf4j.**
-
-# OpenPDF Desktop Java Dependencies
--dontwarn java.awt.**
--dontwarn javax.imageio.**
--dontwarn org.apache.fop.**
--dontwarn com.lowagie.text.**

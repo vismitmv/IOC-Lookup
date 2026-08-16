@@ -7,3 +7,5 @@ Key Features:
 • Automatic Verdict Engines: Real-time threat calculation with instant high-confidence malicious overrides.
 • Dark & Light Modes: Fully custom accent color picker and adaptive Material 3 UI.
 • Privacy First: Direct API communication with no intermediary servers or telemetry.
+
+This application is 100% free, open source, and released under the MIT License. It contains zero analytics, tracking, or proprietary SDKs, and is fully compatible with F-Droid requirements.

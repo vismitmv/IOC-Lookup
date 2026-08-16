@@ -1,17 +1,12 @@
 package com.example.ioclookup.data.export
 
 import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
+import android.graphics.pdf.PdfDocument
 import com.example.ioclookup.domain.model.LookupResult
-import com.example.ioclookup.domain.model.SourceResult
-import com.lowagie.text.Cell
-import com.lowagie.text.Document
-import com.lowagie.text.Element
-import com.lowagie.text.Font
-import com.lowagie.text.Paragraph
-import com.lowagie.text.Phrase
-import com.lowagie.text.Table
-import com.lowagie.text.pdf.PdfWriter
-import com.lowagie.text.pdf.draw.LineSeparator
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.io.FileOutputStream
@@ -26,13 +21,6 @@ class ExportService @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-
-    // Fonts
-    private val titleFont = Font(Font.HELVETICA, 20f, Font.BOLD)
-    private val sectionFont = Font(Font.HELVETICA, 14f, Font.BOLD)
-    private val labelFont = Font(Font.HELVETICA, 10f, Font.BOLD)
-    private val valueFont = Font(Font.HELVETICA, 10f, Font.NORMAL)
-    private val footerFont = Font(Font.HELVETICA, 8f, Font.NORMAL)
 
     fun asPlainText(result: LookupResult): String = buildString {
         appendLine("═══════════════════════════════════════")
@@ -93,54 +81,97 @@ class ExportService @Inject constructor(
         val dir = context.cacheDir
         val file = File(dir, "ioc_report_${System.currentTimeMillis()}.pdf")
 
-        val document = Document()
-        PdfWriter.getInstance(document, FileOutputStream(file))
-        document.open()
+        val pdfDocument = PdfDocument()
+        // A4 size: 595 x 842 points
+        val pageInfo = PdfDocument.PageInfo.Builder(595, 842, 1).create()
+        var page = pdfDocument.startPage(pageInfo)
+        var canvas = page.canvas
 
-        // Title
-        document.add(Paragraph("IOC LOOKUP REPORT", titleFont))
-        document.add(LineSeparator())
-
-        // Summary table
-        val summaryTable = Table(2).apply {
-            width = 100f
-            setWidths(floatArrayOf(30f, 70f))
-            padding = 4f
-            spacing = 0f
+        val titlePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 20f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        val sectionPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 14f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        val labelPaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 10f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
+        }
+        val valuePaint = Paint().apply {
+            color = Color.BLACK
+            textSize = 10f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+        }
+        val footerPaint = Paint().apply {
+            color = Color.GRAY
+            textSize = 8f
+            typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL)
+            textAlign = Paint.Align.CENTER
+        }
+        val linePaint = Paint().apply {
+            color = Color.DKGRAY
+            strokeWidth = 1f
         }
 
+        var currentY = 50f
+        val startX = 50f
+        val colWidth = 150f
+
+        fun checkPageBreak(neededHeight: Float = 50f) {
+            if (currentY + neededHeight > 800f) {
+                pdfDocument.finishPage(page)
+                page = pdfDocument.startPage(pageInfo)
+                canvas = page.canvas
+                currentY = 50f
+            }
+        }
+
+        fun drawLine() {
+            canvas.drawLine(startX, currentY, 545f, currentY, linePaint)
+            currentY += 15f
+        }
+
+        // Title
+        canvas.drawText("IOC LOOKUP REPORT", startX, currentY, titlePaint)
+        currentY += 10f
+        drawLine()
+        currentY += 10f
+
         fun addRow(label: String, value: String, highlight: Boolean = false) {
-            val labelCell = Cell(Phrase(label, labelFont))
-            val valFont = if (highlight) Font(Font.HELVETICA, 10f, Font.BOLD) else valueFont
-            val valueCell = Cell(Phrase(value, valFont))
-            summaryTable.addCell(labelCell)
-            summaryTable.addCell(valueCell)
+            checkPageBreak(30f)
+            canvas.drawText(label, startX, currentY, labelPaint)
+            val valP = if (highlight) labelPaint else valuePaint
+            
+            // Wrap text logic very simply
+            val maxLen = 65
+            var valStr = value
+            if (valStr.length > maxLen) {
+                valStr = valStr.substring(0, maxLen - 3) + "..."
+            }
+            canvas.drawText(valStr, startX + colWidth, currentY, valP)
+            currentY += 20f
         }
 
         addRow("IOC", result.ioc)
         addRow("Type", result.iocType.displayName)
         addRow("Verdict", result.verdict.displayName.uppercase(), highlight = true)
         addRow("Timestamp", dateFormat.format(Date(result.timestamp)))
+        currentY += 15f
 
-        document.add(summaryTable)
-        document.add(Paragraph("\n"))
-
-        // Per-source sections
         fun addSection(title: String, rows: List<Pair<String, String>>) {
-            document.add(Paragraph(title, sectionFont))
-            document.add(LineSeparator())
-            val tbl = Table(2).apply {
-                width = 100f
-                setWidths(floatArrayOf(35f, 65f))
-                padding = 4f
-                spacing = 0f
-            }
+            checkPageBreak(50f)
+            canvas.drawText(title, startX, currentY, sectionPaint)
+            currentY += 10f
+            drawLine()
             for ((lbl, vl) in rows) {
-                tbl.addCell(Cell(Phrase(lbl, labelFont)))
-                tbl.addCell(Cell(Phrase(vl, valueFont)))
+                addRow(lbl, vl)
             }
-            document.add(tbl)
-            document.add(Paragraph("\n"))
+            currentY += 10f
         }
 
         result.vtResult?.let { vt ->
@@ -179,11 +210,16 @@ class ExportService @Inject constructor(
             addSection("AlienVault OTX", rows)
         }
 
-        document.add(Paragraph("Generated by IOC Lookup • ${dateFormat.format(Date())}", footerFont).apply {
-            alignment = Element.ALIGN_CENTER
-        })
+        // Footer
+        canvas.drawText("Generated by IOC Lookup • ${dateFormat.format(Date())}", 595f / 2f, 820f, footerPaint)
 
-        document.close()
+        pdfDocument.finishPage(page)
+
+        FileOutputStream(file).use { out ->
+            pdfDocument.writeTo(out)
+        }
+        pdfDocument.close()
+
         return file
     }
 }
