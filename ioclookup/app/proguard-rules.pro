@@ -6,6 +6,8 @@
 }
 -keep class com.vismitmv.ioclookup.data.remote.** { *; }
 -keep class com.vismitmv.ioclookup.domain.model.** { *; }
+-keep class com.example.ioclookup.data.remote.** { *; }
+-keep class com.example.ioclookup.domain.model.** { *; }
 
 # Room
 -keep class * extends androidx.room.RoomDatabase
@@ -30,3 +32,8 @@
 # SLF4J / Logging optional dependencies
 -dontwarn org.slf4j.**
 
+# OpenPDF Desktop Java Dependencies
+-dontwarn java.awt.**
+-dontwarn javax.imageio.**
+-dontwarn org.apache.fop.**
+-dontwarn com.lowagie.text.**
