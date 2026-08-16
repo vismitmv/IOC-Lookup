@@ -371,6 +371,14 @@ private fun AddCustomFeedDialog(
                     onValueChange = { url = it },
                     label = { Text("URL Template with {ioc}") },
                     placeholder = { Text("https://feed.org/api/{ioc}") },
+                    supportingText = {
+                        if (url.isNotBlank() && !url.contains("{ioc}")) {
+                            Text("URL must contain {ioc} (e.g. https://feed.org/api/{ioc})", color = VerdictMalicious)
+                        } else {
+                            Text("Use {ioc} where the IP/Domain/URL will be inserted", color = TextMuted)
+                        }
+                    },
+                    isError = url.isNotBlank() && !url.contains("{ioc}"),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
