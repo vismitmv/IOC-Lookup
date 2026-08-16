@@ -26,7 +26,7 @@ Builds:
     commit: v1.0.0
     subdir: ioclookup
     gradle:
-      - yes
+      - release
 
 AutoUpdateMode: Version v%v
 UpdateCheckMode: Tags
