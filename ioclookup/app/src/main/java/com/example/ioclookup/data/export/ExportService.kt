@@ -13,7 +13,6 @@ import com.lowagie.text.Table
 import com.lowagie.text.pdf.PdfWriter
 import com.lowagie.text.pdf.draw.LineSeparator
 import dagger.hilt.android.qualifiers.ApplicationContext
-import java.awt.Color
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -29,18 +28,11 @@ class ExportService @Inject constructor(
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
 
     // Fonts
-    private val titleFont = Font(Font.HELVETICA, 20f, Font.BOLD, Color(20, 20, 40))
-    private val sectionFont = Font(Font.HELVETICA, 14f, Font.BOLD, Color(20, 20, 40))
-    private val labelFont = Font(Font.HELVETICA, 10f, Font.BOLD, Color.BLACK)
-    private val valueFont = Font(Font.HELVETICA, 10f, Font.NORMAL, Color.BLACK)
-    private val footerFont = Font(Font.HELVETICA, 8f, Font.NORMAL, Color(149, 165, 166))
-
-    private fun verdictColor(verdictName: String): Color = when (verdictName) {
-        "MALICIOUS" -> Color(231, 76, 60)
-        "SUSPICIOUS" -> Color(243, 156, 18)
-        "CLEAN" -> Color(46, 204, 113)
-        else -> Color(149, 165, 166)
-    }
+    private val titleFont = Font(Font.HELVETICA, 20f, Font.BOLD)
+    private val sectionFont = Font(Font.HELVETICA, 14f, Font.BOLD)
+    private val labelFont = Font(Font.HELVETICA, 10f, Font.BOLD)
+    private val valueFont = Font(Font.HELVETICA, 10f, Font.NORMAL)
+    private val footerFont = Font(Font.HELVETICA, 8f, Font.NORMAL)
 
     fun asPlainText(result: LookupResult): String = buildString {
         appendLine("═══════════════════════════════════════")
@@ -105,8 +97,6 @@ class ExportService @Inject constructor(
         PdfWriter.getInstance(document, FileOutputStream(file))
         document.open()
 
-        val accent = verdictColor(result.verdict.name)
-
         // Title
         document.add(Paragraph("IOC LOOKUP REPORT", titleFont))
         document.add(LineSeparator())
@@ -120,10 +110,8 @@ class ExportService @Inject constructor(
         }
 
         fun addRow(label: String, value: String, highlight: Boolean = false) {
-            val labelCell = Cell(Phrase(label, labelFont)).apply {
-                setBackgroundColor(Color(240, 240, 250))
-            }
-            val valFont = if (highlight) Font(Font.HELVETICA, 10f, Font.BOLD, accent) else valueFont
+            val labelCell = Cell(Phrase(label, labelFont))
+            val valFont = if (highlight) Font(Font.HELVETICA, 10f, Font.BOLD) else valueFont
             val valueCell = Cell(Phrase(value, valFont))
             summaryTable.addCell(labelCell)
             summaryTable.addCell(valueCell)
