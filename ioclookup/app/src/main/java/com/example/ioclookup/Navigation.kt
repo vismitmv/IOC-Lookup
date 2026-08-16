@@ -37,7 +37,7 @@ val bottomNavItems = listOf(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainNavigation() {
+fun MainNavigation(settingsViewModel: com.example.ioclookup.ui.settings.SettingsViewModel) {
     val navController = rememberNavController()
     val historyViewModel: HistoryViewModel = hiltViewModel()
     val appColors = LocalAppColors.current
@@ -107,9 +107,12 @@ fun MainNavigation() {
                 })
             }
             composable(Screen.Settings.route) {
-                SettingsScreen(onClearHistory = {
-                    historyViewModel.clearAll()
-                })
+                SettingsScreen(
+                    viewModel = settingsViewModel,
+                    onClearHistory = {
+                        historyViewModel.clearAll()
+                    }
+                )
             }
         }
     }

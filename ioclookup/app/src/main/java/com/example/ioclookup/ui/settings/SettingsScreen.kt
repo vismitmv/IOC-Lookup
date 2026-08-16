@@ -186,29 +186,67 @@ fun SettingsScreen(
                 }
 
                 Spacer(Modifier.height(12.dp))
+                Text("Custom Color Picker", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
+                Spacer(Modifier.height(8.dp))
 
-                // Custom Hex Input Field
-                var customHexInput by remember(state.accentColorHex) { mutableStateOf(state.accentColorHex) }
-                OutlinedTextField(
-                    value = customHexInput,
-                    onValueChange = { input ->
-                        customHexInput = input
-                        if (input.matches(Regex("^#?[0-9a-fA-F]{6}$"))) {
-                            val formatted = if (input.startsWith("#")) input else "#$input"
-                            viewModel.setAccentColor(formatted)
-                        }
-                    },
-                    label = { Text("Custom Hex Color") },
-                    placeholder = { Text("#00D4FF") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = appColors.accent,
-                        unfocusedBorderColor = appColors.divider,
-                        focusedTextColor = appColors.textPrimary,
-                        unfocusedTextColor = appColors.textPrimary
+                var hue by remember(state.accentColorHex) { 
+                    mutableStateOf(
+                        try {
+                            val hsv = FloatArray(3)
+                            android.graphics.Color.colorToHSV(android.graphics.Color.parseColor(state.accentColorHex), hsv)
+                            hsv[0]
+                        } catch(e: Exception) { 190f }
+                    ) 
+                }
+
+                val rainbowBrush = remember {
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(
+                            Color(0xFFFF0000), // Red
+                            Color(0xFFFFFF00), // Yellow
+                            Color(0xFF00FF00), // Green
+                            Color(0xFF00FFFF), // Cyan
+                            Color(0xFF0000FF), // Blue
+                            Color(0xFFFF00FF), // Magenta
+                            Color(0xFFFF0000)  // Red
+                        )
                     )
-                )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(36.dp)
+                ) {
+                    // Rainbow Track
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(16.dp)
+                            .align(Alignment.Center)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(8.dp))
+                            .background(rainbowBrush)
+                    )
+                    
+                    // Invisible slider over the track to handle thumb and gestures
+                    Slider(
+                        value = hue,
+                        onValueChange = { 
+                            hue = it 
+                            val hex = String.format("#%06X", (0xFFFFFF and android.graphics.Color.HSVToColor(floatArrayOf(it, 1f, 1f))))
+                            viewModel.setAccentColor(hex)
+                        },
+                        valueRange = 0f..360f,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color.White,
+                            activeTrackColor = Color.Transparent,
+                            inactiveTrackColor = Color.Transparent,
+                            activeTickColor = Color.Transparent,
+                            inactiveTickColor = Color.Transparent
+                        )
+                    )
+                }
             }
 
             Spacer(Modifier.height(16.dp))
@@ -216,6 +254,7 @@ fun SettingsScreen(
             // ── Custom Threat Feeds ───────────────────────────────────────
             val blocklistFeeds by viewModel.blocklistFeeds.collectAsStateWithLifecycle()
             val isSyncingBlocklists by viewModel.isSyncingBlocklists.collectAsStateWithLifecycle()
+            val feedSyncStates by viewModel.feedSyncStates.collectAsStateWithLifecycle()
             var showAddBlocklistDialog by remember { mutableStateOf(false) }
 
             SettingsSection(title = "Custom Threat Feeds", icon = Icons.Filled.RssFeed, accentColor = appColors.accent) {
@@ -258,32 +297,27 @@ fun SettingsScreen(
                     Text("No custom threat feeds configured.", style = MaterialTheme.typography.bodySmall, color = appColors.textMuted)
                 } else {
                     blocklistFeeds.forEach { feed ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(feed.name, style = MaterialTheme.typography.bodyMedium, color = appColors.textPrimary, fontWeight = FontWeight.SemiBold)
-                                Text(
-                                    "${feed.entryCount} entries • ${if (feed.lastSyncedAt > 0) "Synced" else "Not synced"}",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = if (feed.entryCount > 0) VerdictClean else appColors.textMuted
-                                )
-                            }
-                            IconButton(onClick = { viewModel.syncBlocklistFeed(feed) }) {
-                                Icon(Icons.Filled.Refresh, contentDescription = "Sync", tint = appColors.accent, modifier = Modifier.size(18.dp))
-                            }
-                            Switch(
-                                checked = feed.isEnabled,
-                                onCheckedChange = { viewModel.toggleBlocklistFeed(feed) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = appColors.accent, uncheckedTrackColor = appColors.divider)
-                            )
-                            IconButton(onClick = { viewModel.deleteBlocklistFeed(feed) }) {
-                                Icon(Icons.Filled.Delete, contentDescription = "Delete", tint = VerdictMalicious, modifier = Modifier.size(18.dp))
-                            }
-                        }
+                        val syncState = feedSyncStates[feed.id.toString()] ?: com.example.ioclookup.ui.settings.FeedSyncState(
+                            autoSyncEnabled = false,
+                            syncIntervalHours = 24L,
+                            wifiOnly = false,
+                            lastSyncedTimestamp = 0L
+                        )
+
+                        BlocklistFeedCard(
+                            feed = feed,
+                            syncState = syncState,
+                            appColors = appColors,
+                            isSyncing = isSyncingBlocklists,
+                            onToggleFeed = { viewModel.toggleBlocklistFeed(feed) },
+                            onDeleteFeed = { viewModel.deleteBlocklistFeed(feed) },
+                            onClearFeed = { viewModel.clearFeedEntries(feed.id) },
+                            onSyncNow = { viewModel.syncImmediate(feed.id.toString(), feed.feedUrl) },
+                            onAutoSyncChanged = { enabled -> viewModel.setAutoSyncEnabled(feed.id.toString(), feed.feedUrl, enabled) },
+                            onSyncIntervalChanged = { hours -> viewModel.setSyncInterval(feed.id.toString(), feed.feedUrl, hours) },
+                            onWifiOnlyChanged = { wifiOnly -> viewModel.setSyncWifiOnly(feed.id.toString(), feed.feedUrl, wifiOnly) }
+                        )
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
 
@@ -523,4 +557,224 @@ private fun AddBlocklistDialog(
             TextButton(onClick = onDismiss) { Text("Cancel", color = appColors.textSecondary) }
         }
     )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun BlocklistFeedCard(
+    feed: com.example.ioclookup.data.local.entity.BlocklistFeedEntity,
+    syncState: com.example.ioclookup.ui.settings.FeedSyncState,
+    appColors: AppColors,
+    isSyncing: Boolean,
+    onToggleFeed: () -> Unit,
+    onDeleteFeed: () -> Unit,
+    onClearFeed: () -> Unit,
+    onSyncNow: () -> Unit,
+    onAutoSyncChanged: (Boolean) -> Unit,
+    onSyncIntervalChanged: (Long) -> Unit,
+    onWifiOnlyChanged: (Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showClearConfirm by remember { mutableStateOf(false) }
+    var expandedInterval by remember { mutableStateOf(false) }
+
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = appColors.background),
+        border = BorderStroke(1.dp, appColors.divider)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(12.dp)) {
+            // Header Row
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(feed.name, style = MaterialTheme.typography.titleSmall, color = appColors.textPrimary, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        "${feed.entryCount} entries",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (feed.entryCount > 0) VerdictClean else appColors.textMuted
+                    )
+                }
+                Switch(
+                    checked = feed.isEnabled,
+                    onCheckedChange = { onToggleFeed() },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = appColors.accent,
+                        uncheckedThumbColor = appColors.textMuted,
+                        uncheckedTrackColor = appColors.surface
+                    )
+                )
+                IconButton(onClick = { expanded = !expanded }) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = "Expand",
+                        tint = appColors.textMuted
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 12.dp)) {
+                    HorizontalDivider(color = appColors.divider, thickness = 0.5.dp)
+                    Spacer(Modifier.height(8.dp))
+
+                    Text("Auto Sync", style = MaterialTheme.typography.labelMedium, color = appColors.accent, fontWeight = FontWeight.Bold)
+                    
+                    // Auto Sync Toggle
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                        Text("Enable Auto Sync", style = MaterialTheme.typography.bodyMedium, color = appColors.textPrimary, modifier = Modifier.weight(1f))
+                        Switch(
+                            checked = syncState.autoSyncEnabled,
+                            onCheckedChange = onAutoSyncChanged,
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = Color.White,
+                                checkedTrackColor = appColors.accent,
+                                uncheckedThumbColor = appColors.textMuted,
+                                uncheckedTrackColor = appColors.surface
+                            )
+                        )
+                    }
+
+                    AnimatedVisibility(visible = syncState.autoSyncEnabled) {
+                        Column {
+                            // Sync Interval Dropdown
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text("Sync Interval", style = MaterialTheme.typography.bodyMedium, color = appColors.textPrimary, modifier = Modifier.weight(1f))
+                                
+                                Box {
+                                    OutlinedButton(
+                                        onClick = { expandedInterval = true },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = appColors.textPrimary),
+                                        border = BorderStroke(1.dp, appColors.divider)
+                                    ) {
+                                        val displayStr = when(syncState.syncIntervalHours) {
+                                            12L -> "12 hours"
+                                            24L -> "24 hours"
+                                            48L -> "48 hours"
+                                            168L -> "7 days"
+                                            else -> "${syncState.syncIntervalHours} hours"
+                                        }
+                                        Text(displayStr, style = MaterialTheme.typography.bodySmall)
+                                        Icon(Icons.Filled.ArrowDropDown, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    }
+                                    
+                                    DropdownMenu(
+                                        expanded = expandedInterval,
+                                        onDismissRequest = { expandedInterval = false }
+                                    ) {
+                                        listOf(12L, 24L, 48L, 168L).forEach { hours ->
+                                            DropdownMenuItem(
+                                                text = { Text(if (hours == 168L) "7 days" else "$hours hours", color = appColors.textPrimary) },
+                                                onClick = {
+                                                    onSyncIntervalChanged(hours)
+                                                    expandedInterval = false
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // WiFi Only Toggle
+                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                                Text("Sync on WiFi Only", style = MaterialTheme.typography.bodyMedium, color = appColors.textPrimary, modifier = Modifier.weight(1f))
+                                Switch(
+                                    checked = syncState.wifiOnly,
+                                    onCheckedChange = onWifiOnlyChanged,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = appColors.accent,
+                                        uncheckedThumbColor = appColors.textMuted,
+                                        uncheckedTrackColor = appColors.surface
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+                    
+                    val timeStr = if (syncState.lastSyncedTimestamp > 0) {
+                        val diff = System.currentTimeMillis() - syncState.lastSyncedTimestamp
+                        val hours = diff / (1000 * 60 * 60)
+                        if (hours == 0L) "Less than an hour ago" else "$hours hours ago"
+                    } else "Never synced"
+                    
+                    Text("Last synced: $timeStr", style = MaterialTheme.typography.labelSmall, color = appColors.textMuted)
+
+                    Spacer(Modifier.height(16.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Button(
+                            onClick = onSyncNow,
+                            enabled = !isSyncing,
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.buttonColors(containerColor = appColors.accent, contentColor = appColors.background)
+                        ) {
+                            Text("Sync Now")
+                        }
+                        
+                        OutlinedButton(
+                            onClick = { showClearConfirm = true },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = VerdictMalicious),
+                            border = BorderStroke(1.dp, VerdictMalicious.copy(alpha = 0.5f))
+                        ) {
+                            Text("Clear Feed")
+                        }
+                        
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete Feed", tint = VerdictMalicious)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("Delete Feed") },
+            text = { Text("Are you sure you want to delete ${feed.name}? This will also delete all its downloaded indicators.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onDeleteFeed()
+                        showDeleteConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VerdictMalicious)
+                ) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) { Text("Cancel", color = appColors.textMuted) }
+            }
+        )
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text("Clear Feed Entries") },
+            text = { Text("Are you sure you want to clear all ${feed.entryCount} entries for ${feed.name}? You can re-sync later.") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onClearFeed()
+                        showClearConfirm = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = VerdictMalicious)
+                ) { Text("Clear") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) { Text("Cancel", color = appColors.textMuted) }
+            }
+        )
+    }
 }

@@ -15,6 +15,7 @@ import com.example.ioclookup.data.local.entity.CustomFeedEntity
 import com.example.ioclookup.data.local.dao.BlocklistDao
 import com.example.ioclookup.data.local.entity.BlocklistFeedEntity
 import com.example.ioclookup.data.repository.BlocklistRepository
+import com.example.ioclookup.domain.SyncScheduler
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,22 +34,50 @@ data class SettingsUiState(
     val accentColorHex: String = "#00D4FF"
 )
 
+data class FeedSyncState(
+    val autoSyncEnabled: Boolean,
+    val syncIntervalHours: Long,
+    val wifiOnly: Boolean,
+    val lastSyncedTimestamp: Long
+)
+
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val prefs: SecurePreferences,
     private val customFeedDao: CustomFeedDao,
     private val blocklistDao: BlocklistDao,
-    private val blocklistRepository: BlocklistRepository
+    private val blocklistRepository: BlocklistRepository,
+    private val syncScheduler: SyncScheduler
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(loadFromPrefs())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
+
+    private val _feedSyncStates = MutableStateFlow<Map<String, FeedSyncState>>(emptyMap())
+    val feedSyncStates: StateFlow<Map<String, FeedSyncState>> = _feedSyncStates.asStateFlow()
 
     val customFeeds: StateFlow<List<CustomFeedEntity>> = customFeedDao.getAllFeedsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val blocklistFeeds: StateFlow<List<BlocklistFeedEntity>> = blocklistDao.getAllFeedsFlow()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            blocklistFeeds.collect { feeds ->
+                val states = feeds.associate { feed ->
+                    val idStr = feed.id.toString()
+                    idStr to FeedSyncState(
+                        autoSyncEnabled = prefs.getSyncEnabled(idStr),
+                        syncIntervalHours = prefs.getSyncInterval(idStr),
+                        wifiOnly = prefs.getSyncWifiOnly(idStr),
+                        lastSyncedTimestamp = prefs.getSyncTimestamp(idStr)
+                    )
+                }
+                _feedSyncStates.value = states
+            }
+        }
+    }
 
     private val _isSyncingBlocklists = MutableStateFlow(false)
     val isSyncingBlocklists: StateFlow<Boolean> = _isSyncingBlocklists.asStateFlow()
@@ -149,6 +178,62 @@ class SettingsViewModel @Inject constructor(
     fun deleteBlocklistFeed(feed: BlocklistFeedEntity) {
         viewModelScope.launch {
             blocklistDao.deleteFeed(feed)
+            syncScheduler.cancel(feed.id.toString())
+            blocklistDao.deleteEntriesForFeed(feed.id)
+        }
+    }
+
+    fun setAutoSyncEnabled(feedId: String, feedUrl: String, enabled: Boolean) {
+        prefs.setSyncEnabled(feedId, enabled)
+        updateFeedSyncState(feedId) { it.copy(autoSyncEnabled = enabled) }
+        
+        if (enabled) {
+            val interval = prefs.getSyncInterval(feedId)
+            val wifiOnly = prefs.getSyncWifiOnly(feedId)
+            syncScheduler.schedule(feedId, feedUrl, interval, wifiOnly)
+        } else {
+            syncScheduler.cancel(feedId)
+        }
+    }
+
+    fun setSyncInterval(feedId: String, feedUrl: String, hours: Long) {
+        prefs.setSyncInterval(feedId, hours)
+        updateFeedSyncState(feedId) { it.copy(syncIntervalHours = hours) }
+        
+        if (prefs.getSyncEnabled(feedId)) {
+            val wifiOnly = prefs.getSyncWifiOnly(feedId)
+            syncScheduler.schedule(feedId, feedUrl, hours, wifiOnly)
+        }
+    }
+
+    fun setSyncWifiOnly(feedId: String, feedUrl: String, wifiOnly: Boolean) {
+        prefs.setSyncWifiOnly(feedId, wifiOnly)
+        updateFeedSyncState(feedId) { it.copy(wifiOnly = wifiOnly) }
+        
+        if (prefs.getSyncEnabled(feedId)) {
+            val interval = prefs.getSyncInterval(feedId)
+            syncScheduler.schedule(feedId, feedUrl, interval, wifiOnly)
+        }
+    }
+
+    fun syncImmediate(feedId: String, feedUrl: String) {
+        syncScheduler.scheduleImmediate(feedId, feedUrl)
+    }
+
+    fun clearFeedEntries(feedId: Long) {
+        viewModelScope.launch {
+            blocklistDao.deleteEntriesForFeed(feedId)
+            blocklistDao.getActiveFeeds().find { it.id == feedId }?.let {
+                blocklistDao.updateFeed(it.copy(entryCount = 0))
+            }
+        }
+    }
+
+    private fun updateFeedSyncState(feedId: String, update: (FeedSyncState) -> FeedSyncState) {
+        val current = _feedSyncStates.value
+        val state = current[feedId] ?: return
+        _feedSyncStates.value = current.toMutableMap().apply {
+            put(feedId, update(state))
         }
     }
 }

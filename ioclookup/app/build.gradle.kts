@@ -90,6 +90,8 @@ dependencies {
   implementation(libs.hilt.android)
   ksp(libs.hilt.android.compiler)
   implementation(libs.hilt.navigation.compose)
+  implementation(libs.hilt.work)
+  ksp(libs.hilt.work.compiler)
 
   // Room
   implementation(libs.room.runtime)
@@ -115,6 +117,9 @@ dependencies {
   // Coil
   implementation(libs.coil.compose)
 
+  // WorkManager
+  implementation(libs.work.runtime.ktx)
+
   // Tests
   testImplementation(libs.junit)
   testImplementation(libs.kotlinx.coroutines.test)
@@ -124,4 +129,9 @@ dependencies {
   androidTestImplementation(libs.androidx.test.ext.junit)
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
+}
+
+configurations.all {
+    exclude(group = "io.opencensus", module = "opencensus-api")
+    exclude(group = "io.opencensus", module = "opencensus-proto")
 }

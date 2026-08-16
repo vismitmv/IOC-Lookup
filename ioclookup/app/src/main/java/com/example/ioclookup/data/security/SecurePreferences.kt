@@ -95,4 +95,17 @@ class SecurePreferences @Inject constructor(
     var accentColorHex: String
         get() = prefs.getString(KEY_ACCENT_COLOR, DEFAULT_ACCENT_COLOR) ?: DEFAULT_ACCENT_COLOR
         set(value) = prefs.edit().putString(KEY_ACCENT_COLOR, value).apply()
+
+    // --- Blocklist Sync Configurations ---
+    fun getSyncEnabled(feedId: String): Boolean = prefs.getBoolean("sync_enabled_$feedId", false)
+    fun setSyncEnabled(feedId: String, value: Boolean) = prefs.edit().putBoolean("sync_enabled_$feedId", value).apply()
+
+    fun getSyncInterval(feedId: String): Long = prefs.getLong("sync_interval_$feedId", 24L) // default 24 hours
+    fun setSyncInterval(feedId: String, value: Long) = prefs.edit().putLong("sync_interval_$feedId", value).apply()
+
+    fun getSyncWifiOnly(feedId: String): Boolean = prefs.getBoolean("sync_wifi_$feedId", false)
+    fun setSyncWifiOnly(feedId: String, value: Boolean) = prefs.edit().putBoolean("sync_wifi_$feedId", value).apply()
+
+    fun getSyncTimestamp(feedId: String): Long = prefs.getLong("sync_timestamp_$feedId", 0L)
+    fun setSyncTimestamp(feedId: String, value: Long) = prefs.edit().putLong("sync_timestamp_$feedId", value).apply()
 }

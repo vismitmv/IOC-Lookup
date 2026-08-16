@@ -31,7 +31,7 @@ class MainActivity : ComponentActivity() {
             }
             IOCLookupTheme(darkTheme = darkTheme, accentColorHex = settings.accentColorHex) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    MainNavigation()
+                    MainNavigation(settingsViewModel)
                 }
             }
         }
