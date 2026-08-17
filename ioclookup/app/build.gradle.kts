@@ -17,11 +17,24 @@ android {
     versionName = "1.0.0"
   }
 
+  signingConfigs {
+    create("release") {
+      storeFile = file("${rootProject.projectDir}/../ioclookup-release.jks")
+      storePassword = "IOCLookup@Secure2024!"
+      keyAlias = "ioclookup-key"
+      keyPassword = "IOCLookup@Secure2024!"
+      enableV1Signing = true
+      enableV2Signing = true
+      enableV3Signing = true
+    }
+  }
+
   buildTypes {
     release {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      signingConfig = signingConfigs.getByName("release")
     }
   }
 
